@@ -1,0 +1,19 @@
+# Air configuration for hot-reload development
+# https://github.com/air-verse/air/blob/master/air_example.toml
+
+root = "."
+tmp_dir = ".tmp"
+
+[build]
+log = "air.log"
+bin = "./.tmp/erato"
+args_bin = ["serve"]
+cmd = "make build"
+include_ext = ["go", "templ", "proto", "sql", "css"]
+exclude_dir = ["internal/gen"]
+exclude_file = []
+exclude_regex = ["_test.go"]
+exclude_unchanged = true
+include_file = []
+send_interrupt = true
+kill_delay = "10ms"

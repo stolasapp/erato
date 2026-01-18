@@ -1,0 +1,17 @@
+package page
+
+import (
+	"github.com/stolasapp/erato/internal/app/component"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+)
+
+templ Story(entry *eratov1.Entry, content string, filters component.FilterParams) {
+	@component.Base(
+		entryTitle(entry),
+		entryBreadcrumbs(entry, filters),
+	) {
+		@component.EntryContentHeader(entry)
+		@component.Content(content)
+		@component.EntryContentFooter(entry, filters)
+	}
+}

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "aep/api/field_info.proto";
+import "aep/api/resource.proto";
+import "buf/validate/validate.proto";
+import "google/api/field_behavior.proto";
+
+// A user with access to the archive.
+message User {
+  option (aep.api.resource) = {
+    type: "erato.stolas.app/user"
+    singular: "user"
+    plural: "users"
+    pattern: "users/{user_id}"
+  };
+
+  // The resource path of the user.
+  //
+  // Format: users/{user_id}
+  string path = 10018 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The user's unique name, used when logging in.
+  string id = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_IMMUTABLE,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // The password of the user, stored as a one-way hash.
+  //
+  // Must be 8-72 characters (bcrypt compatible).
+  string password = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_INPUT_ONLY,
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).cel = {
+      id: "string.password"
+      message: "must be 8-72 characters"
+      expression: "this == '' || (this.size() >= 8 && this.size() <= 72)"
+    }
+  ];
+}

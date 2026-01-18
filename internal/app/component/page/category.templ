@@ -1,0 +1,27 @@
+package page
+
+import (
+	"github.com/stolasapp/erato/internal/app/component"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+)
+
+templ Category(category *eratov1.Category, entries []*eratov1.Entry, props component.ListProps) {
+	@component.Base(
+		categoryTitle(category),
+		categoryBreadcrumbs(category),
+	) {
+		@component.EntryList(entries, props)
+	}
+}
+
+templ categoryTitle(category *eratov1.Category) {
+	| { category.GetDisplayName() }
+}
+
+templ categoryBreadcrumbs(category *eratov1.Category) {
+	{{ slug := component.CategorySlug(category.GetPath()) }}
+	@component.Breadcrumbs() {
+		@component.BreadcrumbSep()
+		<a href={ templ.URL("/" + slug) }>{ category.GetDisplayName() }</a>
+	}
+}

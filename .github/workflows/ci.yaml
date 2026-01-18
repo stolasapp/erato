@@ -1,0 +1,50 @@
+# CI workflow
+# https://docs.github.com/en/actions/writing-workflows
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - v2
+  pull_request:
+    branches:
+      - main
+      - v2
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+
+      - name: Generate code
+        run: make generate
+
+      - name: Verify clean git status
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated code is not up to date. Run 'make generate' and commit the changes."
+            git status
+            exit 1
+          fi
+
+      - name: Run unit tests
+        run: make test-unit
+
+      - name: Run linter
+        run: make lint
+
+      - name: Check proto breaking changes
+        if: github.event_name == 'pull_request'
+        run: go tool buf breaking --against "https://github.com/${{ github.repository }}.git#branch=${{ github.base_ref }}"

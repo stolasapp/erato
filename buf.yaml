@@ -1,0 +1,28 @@
+# Buf module and linting configuration
+# https://buf.build/docs/configuration/v2/buf-yaml
+
+version: v2
+modules:
+  - name: buf.build/stolasapp/erato
+    path: proto
+lint:
+  use:
+    - STANDARD
+    - PROTOVALIDATE
+    - COMMENTS
+    - AEP
+  except:
+    - ENUM_VALUE_PREFIX
+    - ENUM_ZERO_VALUE_SUFFIX
+    # AEP-conflicting rules
+    - RPC_RESPONSE_STANDARD_NAME
+    - RPC_REQUEST_RESPONSE_UNIQUE
+plugins:
+  - plugin: ["go", "tool", "buf-plugin-aep"]
+breaking:
+  use:
+    - FILE
+deps:
+  - buf.build/bufbuild/protovalidate:2a1774d888024a9b93ce7eb4b59f6a83
+  - buf.build/googleapis/googleapis
+  - buf.build/aep/api

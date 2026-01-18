@@ -1,0 +1,5 @@
+# Templ generated code (read .templ source files instead)
+internal/app/component/**/*_templ.go
+
+# Large/noisy files
+go.sum

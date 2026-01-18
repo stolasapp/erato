@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "aep/api/field_info.proto";
+import "aep/api/resource.proto";
+import "google/api/field_behavior.proto";
+
+// A genre of entities in an archive.
+message Category {
+  option (aep.api.resource) = {
+    type: "erato.stolas.app/category"
+    singular: "category"
+    plural: "categories"
+    pattern: "categories/{category}"
+  };
+
+  // The resource path of the category.
+  //
+  // Format: categories/{category}
+  string path = 10018 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The display name of the category.
+  string display_name = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // A short description of the contents of the category.
+  string description = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // Has the user hidden the category?
+  bool hidden = 4;
+}

@@ -1,0 +1,40 @@
+package page
+
+import (
+	"github.com/stolasapp/erato/internal/app/component"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+	"github.com/stolasapp/erato/internal/slugconv"
+)
+
+templ Anthology(entry *eratov1.Entry, chapters []*eratov1.Chapter, props component.ListProps) {
+	@component.Base(
+		entryTitle(entry),
+		entryBreadcrumbs(entry, props.Filters),
+	) {
+		@component.ChapterList(chapters, props)
+	}
+}
+
+templ entryTitle(entry *eratov1.Entry) {
+	| { slugconv.ToTitle(slugconv.EntryParent(entry.GetPath())) }
+	| { entry.GetDisplayName() }
+}
+
+templ entryBreadcrumbs(entry *eratov1.Entry, filters component.FilterParams) {
+	{{
+		categorySlug := component.CategorySlug(slugconv.EntryParent(entry.GetPath()))
+		entrySlug := component.EntrySlug(entry.GetPath())
+		// Parent state contains the category's filters and pagination
+		categoryState := filters.ParentFilters()
+	}}
+	@component.Breadcrumbs() {
+		@component.BreadcrumbSep()
+		<a href={ templ.URL(categoryState.BuildURL("/"+categorySlug) + "#" + entrySlug) }>
+			{ slugconv.ToTitle(categorySlug) }
+		</a>
+		@component.BreadcrumbSep()
+		<a href={ templ.URL("/" + entrySlug) }>
+			{ entry.GetDisplayName() }
+		</a>
+	}
+}

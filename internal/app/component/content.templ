@@ -1,0 +1,94 @@
+package component
+
+import (
+	"fmt"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+	"github.com/stolasapp/erato/internal/slugconv"
+)
+
+// Content renders raw HTML content within an article element.
+templ Content(content string) {
+	<article>
+		@templ.Raw(content)
+	</article>
+}
+
+// EntryContentHeader renders the header for a story page.
+templ EntryContentHeader(entry *eratov1.Entry) {
+	<header>
+		<h1>{ entry.GetDisplayName() }</h1>
+		@ResourceFullTimestamp(entry)
+		@EntryContentActions(entry)
+	</header>
+}
+
+// EntryContentActions renders the action buttons for an entry content page.
+// Used both in headers and for HTMX partial updates.
+templ EntryContentActions(entry *eratov1.Entry) {
+	{{ slug := EntrySlug(entry.GetPath()) }}
+	<nav>
+		@ContentToggle(ActionView, slug, entry.HasViewTime())
+		@ContentToggle(ActionStar, slug, entry.GetStarred())
+		@ContentToggle(ActionHide, slug, entry.GetHidden())
+	</nav>
+}
+
+// ChapterContentHeader renders the header for a chapter page.
+templ ChapterContentHeader(chapter *eratov1.Chapter) {
+	<header>
+		<h1>{ chapter.GetDisplayName() }</h1>
+		@ResourceFullTimestamp(chapter)
+		@ChapterContentActions(chapter)
+	</header>
+}
+
+// ChapterContentActions renders the action buttons for a chapter content page.
+// Used both in headers and for HTMX partial updates.
+templ ChapterContentActions(chapter *eratov1.Chapter) {
+	{{ slug := ChapterSlug(chapter.GetPath()) }}
+	<nav>
+		@ContentToggle(ActionView, slug, chapter.HasViewTime())
+	</nav>
+}
+
+// EntryContentFooter renders the footer with mark-as-read for a story.
+templ EntryContentFooter(entry *eratov1.Entry, filters FilterParams) {
+	{{
+		slug := EntrySlug(entry.GetPath())
+		parentSlug := CategorySlug(slugconv.EntryParent(entry.GetPath()))
+	}}
+	@contentFooter(slug, parentSlug, entry.HasReadTime(), filters)
+}
+
+// ChapterContentFooter renders the footer with mark-as-read for a chapter.
+templ ChapterContentFooter(chapter *eratov1.Chapter, filters FilterParams) {
+	{{
+		slug := ChapterSlug(chapter.GetPath())
+		parentSlug := EntrySlug(slugconv.ChapterParent(chapter.GetPath()))
+	}}
+	@contentFooter(slug, parentSlug, chapter.HasReadTime(), filters)
+}
+
+// contentFooter renders the shared footer structure for content pages.
+templ contentFooter(slug, parentSlug string, isRead bool, filters FilterParams) {
+	{{
+		op := ternaryStr(isRead, "unread", "read")
+		returnURL := filters.ParentFilters().BuildURL("/"+parentSlug) + "#" + slug
+	}}
+	<footer>
+		<a
+			href={ templ.URL(returnURL) }
+			aria-pressed={ fmt.Sprintf("%t", isRead) }
+			hx-put={ fmt.Sprintf("/%s/ops/%s", slug, op) }
+			hx-swap="none"
+			hx-on::after-request="window.location.href = this.href"
+		>
+			@CheckIcon(isRead)
+			if isRead {
+				Mark Unread & Return
+			} else {
+				Mark Read & Return
+			}
+		</a>
+	</footer>
+}

@@ -1,0 +1,32 @@
+# Buf code generation configuration
+# https://buf.build/docs/configuration/v2/buf-gen-yaml
+
+version: v2
+clean: true
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/stolasapp/erato/internal/gen
+    - file_option: go_package_prefix
+      module: buf.build/aep/api
+      value: buf.build/gen/go/aep/api/protocolbuffers/go
+  disable:
+    - module: buf.build/bufbuild/protovalidate
+    - module: buf.build/googleapis/googleapis
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: internal/gen
+    opt:
+      - paths=source_relative
+      - default_api_level=API_OPAQUE
+  - remote: buf.build/connectrpc/go
+    out: internal/gen
+    opt: paths=source_relative
+  - remote: buf.build/bufbuild/protoschema-jsonschema
+    out: jsonschema
+    opt:
+      - target=json-bundle
+    types:
+      - stolasapp.erato.v1.Config
+

@@ -1,0 +1,162 @@
+{
+  "$defs": {
+    "stolasapp.erato.v1.Config.jsonschema.json": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "description": "Default location is `$XDG_CONFIG_HOME/erato.yaml`",
+      "patternProperties": {
+        "^(db_filepath)$": {
+          "default": "",
+          "description": "Defaults to `$XDG_DATA_HOME/erato/db.sqlite`",
+          "title": "Path to the database file.",
+          "type": "string"
+        },
+        "^(dev_mode)$": {
+          "default": false,
+          "description": "Enable developer mode.",
+          "type": "boolean"
+        },
+        "^(log_level)$": {
+          "anyOf": [
+            {
+              "pattern": "^LOG_LEVEL_UNSPECIFIED$",
+              "type": "string"
+            },
+            {
+              "pattern": "^INFO$",
+              "type": "string"
+            },
+            {
+              "enum": [
+                "DEBUG",
+                "WARN",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            {
+              "maximum": -4,
+              "minimum": -4,
+              "type": "integer"
+            },
+            {
+              "maximum": 0,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "maximum": 4,
+              "minimum": 4,
+              "type": "integer"
+            },
+            {
+              "maximum": 8,
+              "minimum": 8,
+              "type": "integer"
+            }
+          ],
+          "default": 0,
+          "description": "Defaults to `INFO`.",
+          "title": "Log Level"
+        },
+        "^(root_uri)$": {
+          "default": "",
+          "description": "Root upstream URL for the archive.",
+          "pattern": "^(?:(?:[a-zA-Z][a-zA-Z\\d+\\-.]*):)?(?://(?:[A-Za-z0-9\\-\\.]+(?::\\d+)?))?(/[^\\?#]*)?(?:\\?([^\\#]*))?(?:\\#(.*))?$",
+          "type": "string"
+        },
+        "^(rpc_address)$": {
+          "description": "Defaults to `localhost:9998`.",
+          "pattern": "^([A-Za-z0-9][A-Za-z0-9-]{0,63}(\\.[A-Za-z0-9-][A-Za-z0-9-]{0,63})*|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|\\[(([0-9a-fA-F]{1,4}::?){1,7}([0-9a-fA-F]{1,4})|([0-9a-fA-F]{1,4}:){1,7}:|:((([0-9a-fA-F]{1,4}:){1,6})?[0-9a-fA-F]{1,4})?|::)\\]):([1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$",
+          "title": "The host:port pair to listen on for Connect RPC endpoints.",
+          "type": "string"
+        },
+        "^(web_address)$": {
+          "description": "Defaults to `localhost:9999`.",
+          "pattern": "^([A-Za-z0-9][A-Za-z0-9-]{0,63}(\\.[A-Za-z0-9-][A-Za-z0-9-]{0,63})*|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|\\[(([0-9a-fA-F]{1,4}::?){1,7}([0-9a-fA-F]{1,4})|([0-9a-fA-F]{1,4}:){1,7}:|:((([0-9a-fA-F]{1,4}:){1,6})?[0-9a-fA-F]{1,4})?|::)\\]):([1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$",
+          "title": "The host:port pair to listen on for the web app endpoints.",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "dbFilepath": {
+          "default": "",
+          "description": "Defaults to `$XDG_DATA_HOME/erato/db.sqlite`",
+          "title": "Path to the database file.",
+          "type": "string"
+        },
+        "devMode": {
+          "default": false,
+          "description": "Enable developer mode.",
+          "type": "boolean"
+        },
+        "logLevel": {
+          "anyOf": [
+            {
+              "pattern": "^LOG_LEVEL_UNSPECIFIED$",
+              "type": "string"
+            },
+            {
+              "pattern": "^INFO$",
+              "type": "string"
+            },
+            {
+              "enum": [
+                "DEBUG",
+                "WARN",
+                "ERROR"
+              ],
+              "type": "string"
+            },
+            {
+              "maximum": -4,
+              "minimum": -4,
+              "type": "integer"
+            },
+            {
+              "maximum": 0,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "maximum": 4,
+              "minimum": 4,
+              "type": "integer"
+            },
+            {
+              "maximum": 8,
+              "minimum": 8,
+              "type": "integer"
+            }
+          ],
+          "default": 0,
+          "description": "Defaults to `INFO`.",
+          "title": "Log Level"
+        },
+        "rootUri": {
+          "default": "",
+          "description": "Root upstream URL for the archive.",
+          "pattern": "^(?:(?:[a-zA-Z][a-zA-Z\\d+\\-.]*):)?(?://(?:[A-Za-z0-9\\-\\.]+(?::\\d+)?))?(/[^\\?#]*)?(?:\\?([^\\#]*))?(?:\\#(.*))?$",
+          "type": "string"
+        },
+        "rpcAddress": {
+          "description": "Defaults to `localhost:9998`.",
+          "pattern": "^([A-Za-z0-9][A-Za-z0-9-]{0,63}(\\.[A-Za-z0-9-][A-Za-z0-9-]{0,63})*|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|\\[(([0-9a-fA-F]{1,4}::?){1,7}([0-9a-fA-F]{1,4})|([0-9a-fA-F]{1,4}:){1,7}:|:((([0-9a-fA-F]{1,4}:){1,6})?[0-9a-fA-F]{1,4})?|::)\\]):([1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$",
+          "title": "The host:port pair to listen on for Connect RPC endpoints.",
+          "type": "string"
+        },
+        "webAddress": {
+          "description": "Defaults to `localhost:9999`.",
+          "pattern": "^([A-Za-z0-9][A-Za-z0-9-]{0,63}(\\.[A-Za-z0-9-][A-Za-z0-9-]{0,63})*|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)|\\[(([0-9a-fA-F]{1,4}::?){1,7}([0-9a-fA-F]{1,4})|([0-9a-fA-F]{1,4}:){1,7}:|:((([0-9a-fA-F]{1,4}:){1,6})?[0-9a-fA-F]{1,4})?|::)\\]):([1-9][0-9]{0,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$",
+          "title": "The host:port pair to listen on for the web app endpoints.",
+          "type": "string"
+        }
+      },
+      "title": "Configuration YAML file schema used by the CLI.",
+      "type": "object"
+    }
+  },
+  "$id": "stolasapp.erato.v1.Config.jsonschema.bundle.json",
+  "$ref": "#/$defs/stolasapp.erato.v1.Config.jsonschema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

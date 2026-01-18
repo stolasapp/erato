@@ -1,0 +1,50 @@
+package component
+
+import "fmt"
+
+// Icon renders an SVG icon from the external sprite file.
+templ Icon(name string, size int) {
+	<svg width={ fmt.Sprintf("%d", size) } height={ fmt.Sprintf("%d", size) }>
+		<use href={ fmt.Sprintf("/static/icons.svg#icon-%s", name) }></use>
+	</svg>
+}
+
+// StarIcon renders a star icon (filled or outlined).
+templ StarIcon(filled bool) {
+	if filled {
+		<svg width="16" height="16" class="filled">
+			<use href="/static/icons.svg#icon-star"></use>
+		</svg>
+	} else {
+		@Icon("star", 16)
+	}
+}
+
+// EyeIcon renders an eye icon (open or closed).
+templ EyeIcon(open bool) {
+	if open {
+		@Icon("eye-open", 16)
+	} else {
+		@Icon("eye-closed", 16)
+	}
+}
+
+// CheckIcon renders a checkmark icon.
+templ CheckIcon(checked bool) {
+	if checked {
+		<svg width="16" height="16" class="checked">
+			<use href="/static/icons.svg#icon-check"></use>
+		</svg>
+	} else {
+		@Icon("check", 16)
+	}
+}
+
+// HideIcon renders a hide/show icon.
+templ HideIcon(hidden bool) {
+	if hidden {
+		@Icon("show", 16)
+	} else {
+		@Icon("hide", 16)
+	}
+}

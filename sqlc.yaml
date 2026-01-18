@@ -1,0 +1,21 @@
+# SQLC code generation configuration
+# https://docs.sqlc.dev/en/stable/reference/config.html
+
+version: 2
+sql:
+  - schema: internal/storage/db/migrations
+    queries: internal/storage/db/queries.sql
+    engine: sqlite
+    gen:
+      go:
+        package: "db"
+        out: "internal/storage/db"
+        overrides:
+          - column: "resources.view_time"
+            go_type: "database/sql.NullTime"
+          - column: "resources.read_time"
+            go_type: "database/sql.NullTime"
+          - column: "users.id"
+            go_type: "uint64"
+          - column: "resources.user"
+            go_type: "uint64"

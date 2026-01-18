@@ -1,0 +1,103 @@
+package component
+
+import (
+	"fmt"
+	"time"
+)
+
+// timestampInfo holds the computed time and label for a resource timestamp.
+type timestampInfo struct {
+	time  time.Time
+	label string
+}
+
+// resolveTimestamp determines which time and label to display for a resource.
+// Shows "updated" if the resource was modified after being viewed/read.
+func resolveTimestamp(resource Resource) timestampInfo {
+	updateTime := resource.GetUpdateTime().AsTime()
+
+	switch {
+	case resource.HasReadTime():
+		readTime := resource.GetReadTime().AsTime()
+		if updateTime.After(readTime) {
+			return timestampInfo{updateTime, "updated"}
+		}
+		return timestampInfo{readTime, "read"}
+
+	case resource.HasViewTime():
+		viewTime := resource.GetViewTime().AsTime()
+		if updateTime.After(viewTime) {
+			return timestampInfo{updateTime, "updated"}
+		}
+		return timestampInfo{viewTime, "viewed"}
+
+	default:
+		return timestampInfo{updateTime, "posted"}
+	}
+}
+
+// ResourceTimestamp renders the appropriate timestamp for a resource.
+// Shows "updated" if the resource was modified after being viewed/read.
+templ ResourceTimestamp(resource Resource) {
+	{{ info := resolveTimestamp(resource) }}
+	@Timestamp(info.time, info.label)
+}
+
+// ResourceFullTimestamp renders the full date timestamp for content pages.
+// Shows "updated" if the resource was modified after being viewed/read.
+templ ResourceFullTimestamp(resource Resource) {
+	{{ info := resolveTimestamp(resource) }}
+	@FullTimestamp(info.time, info.label)
+}
+
+// Timestamp renders a compact relative timestamp.
+templ Timestamp(ts time.Time, label string) {
+	<time datetime={ ts.Format(time.RFC3339) } data-label={ label }>
+		{ humanizeTime(ts) }
+	</time>
+}
+
+// FullTimestamp renders a full date timestamp.
+templ FullTimestamp(ts time.Time, label string) {
+	<time datetime={ ts.Format(time.RFC3339) } data-label={ label }>
+		{ ts.Format("January 2, 2006") }
+	</time>
+}
+
+// humanizeTime converts a time to a compact human-readable relative string.
+func humanizeTime(t time.Time) string {
+	duration := time.Since(t)
+	seconds := int(duration.Seconds())
+
+	if seconds < 60 {
+		return "just now"
+	}
+
+	minutes := seconds / 60
+	if minutes < 60 {
+		return fmt.Sprintf("%dm ago", minutes)
+	}
+
+	hours := minutes / 60
+	if hours < 24 {
+		return fmt.Sprintf("%dh ago", hours)
+	}
+
+	days := hours / 24
+	if days < 7 {
+		return fmt.Sprintf("%dd ago", days)
+	}
+
+	weeks := days / 7
+	if weeks < 4 {
+		return fmt.Sprintf("%dw ago", weeks)
+	}
+
+	if days < 365 {
+		months := days / 30
+		return fmt.Sprintf("%dmo ago", months)
+	}
+
+	years := days / 365
+	return fmt.Sprintf("%dy ago", years)
+}

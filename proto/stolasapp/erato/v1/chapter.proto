@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "aep/api/field_info.proto";
+import "aep/api/resource.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+// A single chapter within an anthology entry.
+message Chapter {
+  option (aep.api.resource) = {
+    type: "erato.stolas.app/chapter"
+    singular: "chapter"
+    plural: "chapters"
+    pattern: "categories/{category}/entries/{entry}/chapters/{chapter}"
+  };
+
+  // The resource path of the chapter.
+  //
+  // Format: categories/{category}/entries/{entry}/chapters/{chapter}
+  string path = 10018 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The display name of the chapter.
+  string display_name = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // When was the chapter last updated? The precision of this field may change
+  // depending on how/when the resource has been accessed.
+  google.protobuf.Timestamp update_time = 4 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // When was the chapter last viewed by the user?
+  google.protobuf.Timestamp view_time = 5;
+
+  // When was the chapter marked as read by the user?
+  google.protobuf.Timestamp read_time = 6;
+}

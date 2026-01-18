@@ -1,0 +1,512 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "aep/api/field_info.proto";
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "stolasapp/erato/v1/category.proto";
+import "stolasapp/erato/v1/chapter.proto";
+import "stolasapp/erato/v1/entry.proto";
+import "stolasapp/erato/v1/user.proto";
+
+// Service to interact with an archive.
+service ArchiveService {
+  // Fetches the categories of an archive.
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse) {
+    option (google.api.http) = {get: "/v1/categories"};
+    option (google.api.method_signature) = "";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Fetch a single category from the archive.
+  rpc GetCategory(GetCategoryRequest) returns (Category) {
+    option (google.api.http) = {get: "/v1/{path=categories/*}"};
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Modify a single category in the archive.
+  rpc UpdateCategory(UpdateCategoryRequest) returns (Category) {
+    option (google.api.http) = {
+      patch: "/v1/{path=categories/*}"
+      body: "category"
+    };
+    option (google.api.method_signature) = "category,update_mask";
+  }
+
+  // Fetch the entries for a category.
+  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse) {
+    option (google.api.http) = {get: "/v1/{parent=categories/*}/entries"};
+    option (google.api.method_signature) = "parent";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Fetch a single entry from a category.
+  rpc GetEntry(GetEntryRequest) returns (Entry) {
+    option (google.api.http) = {get: "/v1/{path=categories/*/entries/*}"};
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Modify a single entry in the archive.
+  rpc UpdateEntry(UpdateEntryRequest) returns (Entry) {
+    option (google.api.http) = {
+      patch: "/v1/{path=categories/*/entries/*}"
+      body: "entry"
+    };
+    option (google.api.method_signature) = "entry,update_mask";
+  }
+
+  // Fetch the chapters for an anthology entry.
+  rpc ListChapters(ListChaptersRequest) returns (ListChaptersResponse) {
+    option (google.api.http) = {get: "/v1/{parent=categories/*/entries/*}/chapters"};
+    option (google.api.method_signature) = "parent";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Fetch a single chapter from an anthology entry.
+  rpc GetChapter(GetChapterRequest) returns (Chapter) {
+    option (google.api.http) = {get: "/v1/{path=categories/*/entries/*/chapters/*}"};
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Modify a single chapter in the archive.
+  rpc UpdateChapter(UpdateChapterRequest) returns (Chapter) {
+    option (google.api.http) = {
+      patch: "/v1/{path=categories/*/entries/*/chapters/*}"
+      body: "chapter"
+    };
+    option (google.api.method_signature) = "chapter,update_mask";
+  }
+
+  // Fetch content for a story entry.
+  // buf:lint:ignore AEP_0131_SYNONYMS
+  rpc ReadEntry(ReadEntryRequest) returns (ReadEntryResponse) {
+    option (google.api.http).get = "/v1/{path=categories/*/entries/*}:read";
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Fetch content for an anthology chapter.
+  // buf:lint:ignore AEP_0131_SYNONYMS
+  rpc ReadChapter(ReadChapterRequest) returns (ReadChapterResponse) {
+    option (google.api.http).get = "/v1/{path=categories/*/entries/*/chapters/*}:read";
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Creates a new user with access to the archive.
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/v1/users"
+      body: "user"
+    };
+    option (google.api.method_signature) = "user";
+  }
+
+  // Fetch the users with access to the archive.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (google.api.http).get = "/v1/users";
+    option (google.api.method_signature) = "";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Fetch a single user with access to the archive.
+  rpc GetUser(GetUserRequest) returns (User) {
+    option (google.api.http).get = "/v1/{path=users/*}";
+    option (google.api.method_signature) = "path";
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Modify a single user with access to the archive.
+  rpc UpdateUser(UpdateUserRequest) returns (User) {
+    option (google.api.http) = {
+      patch: "/v1/{path=users/*}"
+      body: "user"
+    };
+    option (google.api.method_signature) = "user,update_mask";
+  }
+
+  // Deletes a user and their data from the archive.
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+    option (google.api.http).delete = "/v1/{path=users/*}";
+    option (google.api.method_signature) = "path";
+  }
+}
+
+// ListCategories Request.
+//
+// TODO: linter bug not skipping parent field when none exists
+// buf:lint:ignore AEP_0132_REQUEST_PARENT_REQUIRED
+message ListCategoriesRequest {
+  // Boolean CEL expression to filter category results.
+  //
+  // The variable `this` refers to a Category.
+  string filter = 1 [(aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL];
+
+  // The maximum size of the page.
+  int32 max_page_size = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).int32 = {
+      gte: 0
+      lte: 100
+    }
+  ];
+
+  // The opaque page token to request.
+  string page_token = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).string.max_len = 4096
+  ];
+}
+
+// ListCategories Response
+message ListCategoriesResponse {
+  // The categories, in alphabetic order.
+  repeated Category results = 1;
+
+  // The opaque page token indicating the ending point of this response.
+  string next_page_token = 2;
+}
+
+// GetCategory Request
+message GetCategoryRequest {
+  // The globally unique identifier for the category.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/category",
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpdateCategory Request
+message UpdateCategoryRequest {
+  // The globally unique identifier for the category.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/category",
+    (buf.validate.field).required = true
+  ];
+
+  // The updates to apply to the category.
+  Category category = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // The update mask for the category.
+  //
+  // Valid paths: hidden
+  google.protobuf.FieldMask update_mask = 3 [(buf.validate.field).field_mask = {
+    in: ["hidden"]
+  }];
+}
+
+// ListEntries Request.
+message ListEntriesRequest {
+  // The parent category for these entries.
+  string parent = 1 [
+    (aep.api.field_info).resource_reference_child_type = "erato.stolas.app/entry",
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // Boolean CEL expression to filter entry results.
+  //
+  // The variable `this` refers to an Entry.
+  string filter = 2 [(aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL];
+
+  // The maximum size of the page.
+  int32 max_page_size = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).int32 = {
+      gte: 0
+      lte: 100
+    }
+  ];
+
+  // The opaque page token to request.
+  string page_token = 4 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).string.max_len = 4096
+  ];
+}
+
+// ListEntries Response
+message ListEntriesResponse {
+  // The entries, in reverse-chronological order by update_time.
+  repeated Entry results = 1;
+
+  // The opaque page token indicating the ending point of this response.
+  string next_page_token = 2;
+}
+
+// GetEntry Request
+message GetEntryRequest {
+  // The globally unique identifier for the entry.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/entry",
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpdateEntry Request
+message UpdateEntryRequest {
+  // The globally unique identifier for the entry.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/entry",
+    (buf.validate.field).required = true
+  ];
+
+  // The updates to apply to the entry.
+  Entry entry = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // The update mask for the entry.
+  //
+  // Valid paths: hidden, starred, view_time, read_time
+  google.protobuf.FieldMask update_mask = 3 [(buf.validate.field).field_mask = {
+    in: [
+      "hidden",
+      "starred",
+      "view_time",
+      "read_time"
+    ]
+  }];
+}
+
+// ListChapters Request.
+message ListChaptersRequest {
+  // The parent anthology entry for these chapters.
+  string parent = 1 [
+    (aep.api.field_info).resource_reference_child_type = "erato.stolas.app/chapter",
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // The maximum size of the page.
+  int32 max_page_size = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).int32 = {
+      gte: 0
+      lte: 100
+    }
+  ];
+
+  // The opaque page token to request.
+  string page_token = 4 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).string.max_len = 4096
+  ];
+}
+
+// ListChapters Response
+message ListChaptersResponse {
+  // The chapters, in reverse-chronological order by update_time.
+  repeated Chapter results = 1;
+
+  // The opaque page token indicating the ending point of this response.
+  string next_page_token = 2;
+}
+
+// GetChapter Request
+message GetChapterRequest {
+  // The globally unique identifier for the chapter.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/chapter",
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpdateChapter Request
+message UpdateChapterRequest {
+  // The globally unique identifier for the chapter.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/chapter",
+    (buf.validate.field).required = true
+  ];
+
+  // The updates to apply to the chapter.
+  Chapter chapter = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // The update mask for the chapter.
+  //
+  // Valid paths: view_time, read_time
+  google.protobuf.FieldMask update_mask = 3 [(buf.validate.field).field_mask = {
+    in: [
+      "view_time",
+      "read_time"
+    ]
+  }];
+}
+
+// ReadEntry Request
+message ReadEntryRequest {
+  // The globally unique identifier for the story entry.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/entry",
+    (buf.validate.field).required = true
+  ];
+
+  // The content type of the response data.
+  MimeType mime_type = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+
+  // Supported content types.
+  enum MimeType {
+    // Unknown mimetype
+    MIME_TYPE_UNSPECIFIED = 0;
+
+    // CommonMark 0.31.2 compatible markdown
+    MARKDOWN = 1;
+
+    // HTML5 body fragment
+    HTML = 2;
+  }
+}
+
+// ReadEntry Response
+message ReadEntryResponse {
+  // Contents of the resource.
+  string content = 1;
+}
+
+// ReadChapter Request
+message ReadChapterRequest {
+  // The globally unique identifier for the anthology chapter.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/chapter",
+    (buf.validate.field).required = true
+  ];
+
+  // The content type of the response data.
+  ReadEntryRequest.MimeType mime_type = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+}
+
+// ReadChapter Response
+message ReadChapterResponse {
+  // Contents of the resource.
+  string content = 1;
+}
+
+// CreateUser Request
+message CreateUserRequest {
+  // The unique identifier for the user. Used as the user's name.
+  //
+  // Must be 3-64 characters, alphanumeric and underscores only.
+  string id = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).cel = {
+      id: "string.user_id"
+      message: "must be 3-64 characters, alphanumeric and underscores only"
+      expression: "this == '' || (this.size() >= 3 && this.size() <= 64 && this.matches('^[a-zA-Z0-9_]+$'))"
+    }
+  ];
+
+  // The user to create.
+  User user = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// ListUsers Request.
+//
+// TODO: linter bug not skipping parent field when none exists
+// buf:lint:ignore AEP_0132_REQUEST_PARENT_REQUIRED
+message ListUsersRequest {
+  // Boolean CEL expression to filter user results.
+  //
+  // The variable `this` refers to a User.
+  string filter = 1 [(aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL];
+
+  // The maximum size of the page.
+  int32 max_page_size = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).int32 = {
+      gte: 0
+      lte: 100
+    }
+  ];
+
+  // The opaque page token to request.
+  string page_token = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OPTIONAL,
+    (buf.validate.field).string.max_len = 4096
+  ];
+}
+
+// ListUsers Response
+message ListUsersResponse {
+  // The users, in alphabetic order.
+  repeated User results = 1;
+
+  // The opaque page token indicating the ending point of this response.
+  string next_page_token = 2;
+}
+
+// GetUser Request
+message GetUserRequest {
+  // The globally unique identifier for the user.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/user",
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpdateUser Request
+message UpdateUserRequest {
+  // The globally unique identifier for the user.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/user",
+    (buf.validate.field).required = true
+  ];
+
+  // The updates to apply to the user.
+  User user = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (buf.validate.field).required = true
+  ];
+
+  // The update mask for the user.
+  //
+  // Valid paths: password
+  google.protobuf.FieldMask update_mask = 3 [(buf.validate.field).field_mask = {
+    in: ["password"]
+  }];
+}
+
+// DeleteUser Request
+message DeleteUserRequest {
+  // The globally unique identifier for the user.
+  string path = 1 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_REQUIRED,
+    (aep.api.field_info).resource_reference = "erato.stolas.app/user",
+    (buf.validate.field).required = true
+  ];
+}

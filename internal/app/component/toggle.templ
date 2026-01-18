@@ -1,0 +1,88 @@
+package component
+
+import "fmt"
+
+// Action represents a toggle action type.
+type Action string
+
+const (
+	ActionView Action = "view"
+	ActionRead Action = "read"
+	ActionStar Action = "star"
+	ActionHide Action = "hide"
+)
+
+// actionMeta holds the metadata for each action type.
+type actionMeta struct {
+	onAction string // action when active (e.g., "unview")
+	onLabel  string // label when active
+	offLabel string // label when inactive
+}
+
+var actionMetadata = map[Action]actionMeta{
+	ActionView: {"unview", "Mark as not viewed", "Mark as viewed"},
+	ActionRead: {"unread", "Mark as unread", "Mark as read"},
+	ActionStar: {"unstar", "Remove from starred", "Add to starred"},
+	ActionHide: {"unhide", "Unhide", "Hide"},
+}
+
+// Toggle renders a toggle button for list items (targets closest article).
+templ Toggle(action Action, slug string, active bool) {
+	@toggle(action, slug, active, "closest article")
+}
+
+// ContentToggle renders a toggle button for content pages (targets closest nav).
+templ ContentToggle(action Action, slug string, active bool) {
+	@toggle(action, slug, active, "closest nav")
+}
+
+templ toggle(action Action, slug string, active bool, target string) {
+	{{
+		meta := actionMetadata[action]
+		op := ternaryStr(active, meta.onAction, string(action))
+		label := ternaryStr(active, meta.onLabel, meta.offLabel)
+	}}
+	<button
+		aria-pressed={ fmt.Sprintf("%t", active) }
+		aria-label={ label }
+		hx-put={ fmt.Sprintf("/%s/ops/%s", slug, op) }
+		hx-target={ target }
+		hx-swap="outerHTML"
+		data-action={ string(action) }
+	>
+		switch action {
+			case ActionView:
+				@EyeIcon(active)
+			case ActionRead:
+				@CheckIcon(active)
+			case ActionStar:
+				@StarIcon(active)
+			case ActionHide:
+				@HideIcon(active)
+		}
+	</button>
+}
+
+// Convenience wrappers for list items (backward compatibility and readability).
+templ ViewToggle(slug string, viewed bool) {
+	@Toggle(ActionView, slug, viewed)
+}
+
+templ ReadToggle(slug string, read bool) {
+	@Toggle(ActionRead, slug, read)
+}
+
+templ StarToggle(slug string, starred bool) {
+	@Toggle(ActionStar, slug, starred)
+}
+
+templ HideToggle(slug string, hidden bool) {
+	@Toggle(ActionHide, slug, hidden)
+}
+
+func ternaryStr(condition bool, ifTrue, ifFalse string) string {
+	if condition {
+		return ifTrue
+	}
+	return ifFalse
+}

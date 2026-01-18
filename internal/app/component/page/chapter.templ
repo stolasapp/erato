@@ -1,0 +1,48 @@
+package page
+
+import (
+	"github.com/stolasapp/erato/internal/app/component"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+	"github.com/stolasapp/erato/internal/slugconv"
+)
+
+templ Chapter(chapter *eratov1.Chapter, content string, filters component.FilterParams) {
+	@component.Base(
+		chapterTitle(chapter),
+		chapterBreadcrumbs(chapter, filters),
+	) {
+		@component.ChapterContentHeader(chapter)
+		@component.Content(content)
+		@component.ChapterContentFooter(chapter, filters)
+	}
+}
+
+templ chapterTitle(chapter *eratov1.Chapter) {
+	{{
+		anthologyPath := slugconv.ChapterParent(chapter.GetPath())
+		categoryPath := slugconv.EntryParent(anthologyPath)
+	}}
+	| { slugconv.ToTitle(categoryPath) }
+	| { slugconv.ToTitle(anthologyPath) }
+	| { chapter.GetDisplayName() }
+}
+
+templ chapterBreadcrumbs(chapter *eratov1.Chapter, filters component.FilterParams) {
+	{{
+		chapterSlug := component.ChapterSlug(chapter.GetPath())
+		anthologyPath := slugconv.ChapterParent(chapter.GetPath())
+		anthologySlug := component.EntrySlug(anthologyPath)
+		categorySlug := component.CategorySlug(slugconv.EntryParent(anthologyPath))
+		// Parent state is the anthology's; grandparent is the category's
+		anthologyState := filters.ParentFilters()
+		categoryState := anthologyState.ParentFilters()
+	}}
+	@component.Breadcrumbs() {
+		@component.BreadcrumbSep()
+		<a href={ templ.URL(categoryState.BuildURL("/"+categorySlug) + "#" + anthologySlug) }>{ slugconv.ToTitle(categorySlug) }</a>
+		@component.BreadcrumbSep()
+		<a href={ templ.URL(anthologyState.BuildURL("/"+anthologySlug) + "#" + chapterSlug) }>{ slugconv.ToTitle(anthologySlug) }</a>
+		@component.BreadcrumbSep()
+		<a href={ templ.URL("/" + chapterSlug) }>{ chapter.GetDisplayName() }</a>
+	}
+}

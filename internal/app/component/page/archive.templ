@@ -1,0 +1,20 @@
+package page
+
+import (
+	"github.com/stolasapp/erato/internal/app/component"
+	eratov1 "github.com/stolasapp/erato/internal/gen/stolasapp/erato/v1"
+)
+
+templ Archive(categories []*eratov1.Category, filters component.FilterParams) {
+	@component.Base(
+		templ.NopComponent,
+		templ.NopComponent,
+	) {
+		@component.CategoryList(categories, component.ListProps{
+			Title:    "Categories",
+			ListType: component.ListTypeCategories,
+			Filters:  filters,
+			BaseURL:  "/",
+		})
+	}
+}

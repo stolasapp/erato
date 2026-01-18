@@ -1,0 +1,32 @@
+# UI test workflow
+# https://docs.github.com/en/actions/writing-workflows
+
+name: UI
+
+on:
+  push:
+    branches:
+      - main
+      - v2
+  pull_request:
+    branches:
+      - main
+      - v2
+
+concurrency:
+  group: ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ui:
+    name: UI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Go
+        uses: ./.github/actions/setup-go
+
+      - name: Run UI tests
+        run: make test-ui

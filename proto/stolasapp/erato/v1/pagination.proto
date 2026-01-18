@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Opaque pagination token used by ListCategories RPC. This message should not
+// be used and is not considered stable.
+message ListCategoriesPaginationToken {
+  // Resource path to the category to start with, exclusively.
+  string after_category = 1 [(buf.validate.field).required = true];
+}
+
+// Opaque pagination token used by ListEntries RPC. This message should not be
+// used and is not considered stable.
+message ListEntriesPaginationToken {
+  // 1-indexed page number to start with, inclusively.
+  // buf:lint:ignore AEP_0141_FORBIDDEN_TYPES
+  uint32 page = 1 [(buf.validate.field).required = true];
+
+  // Entry to start after. Especially for old entries, multiple entries may
+  // have the same update_time at the page border, so this is required
+  // alongside after_update_time.
+  string after_entry = 2 [(buf.validate.field).required = true];
+
+  // If the update_time of after_entry doesn't match this timestamp, it means
+  // it was updated more recently or removed. In this case, we should start the
+  // page at this timestamp, which may result in duplicates in some unlikely
+  // edge cases.
+  google.protobuf.Timestamp start_update_time = 3 [(buf.validate.field).required = true];
+}
+
+// Opaque pagination token used by ListChapters RPC. This message should not be
+// used and is not considered stable.
+message ListChaptersPaginationToken {
+  // Resource path to the chapter to start with, exclusively.
+  string after_chapter = 1 [(buf.validate.field).required = true];
+}
+
+// Opaque pagination token used by ListUsers RPC. This message should not be
+// used and is not considered stable.
+message ListUsersPaginationToken {
+  // Resource path to the user to start with, exclusively.
+  string after_user = 1 [(buf.validate.field).required = true];
+}

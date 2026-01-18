@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "aep/api/field_info.proto";
+import "aep/api/resource.proto";
+import "buf/validate/validate.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+// A single item within a category. May be a one-shot story or a multi-chapter
+// anthology.
+message Entry {
+  option (aep.api.resource) = {
+    type: "erato.stolas.app/entry"
+    singular: "entry"
+    plural: "entries"
+    pattern: "categories/{category}/entries/{entry}"
+  };
+
+  // The resource path of the entry.
+  //
+  // Format: categories/{category}/entries/{entry}
+  string path = 10018 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The display name of the entry.
+  string display_name = 2 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // The type of the entity.
+  Kind kind = 3 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (buf.validate.field).enum.defined_only = true
+  ];
+
+  // Has the user hidden the entry?
+  bool hidden = 4;
+
+  // Has the user bookmarked the entry?
+  bool starred = 5;
+
+  // When was the entry last updated? The precision of this field may change
+  // depending on how/when the resource has been accessed.
+  google.protobuf.Timestamp update_time = 6 [
+    (aep.api.field_info).field_behavior = FIELD_BEHAVIOR_OUTPUT_ONLY,
+    (google.api.field_behavior) = OUTPUT_ONLY
+  ];
+
+  // When was the entry last viewed by the user?
+  google.protobuf.Timestamp view_time = 7;
+
+  // When was the entry marked as read by the user?
+  google.protobuf.Timestamp read_time = 8;
+
+  // Identifies the type of an entity.
+  enum Kind {
+    // Unknown kind.
+    KIND_UNSPECIFIED = 0;
+    // A one-shot story.
+    STORY = 1;
+    // A multi-chapter collection.
+    ANTHOLOGY = 2;
+  }
+}

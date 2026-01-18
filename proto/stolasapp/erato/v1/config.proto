@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package stolasapp.erato.v1;
+
+import "buf/validate/validate.proto";
+
+// Configuration YAML file schema used by the CLI.
+//
+// Default location is `$XDG_CONFIG_HOME/erato.yaml`
+message Config {
+  // The log level to set on the service.
+  //
+  // Defaults to `INFO`.
+  LogLevel log_level = 1 [(buf.validate.field).enum.defined_only = true];
+
+  // The host:port pair to listen on for Connect RPC endpoints.
+  //
+  // Defaults to `localhost:9998`.
+  optional string rpc_address = 2 [(buf.validate.field).string.host_and_port = true];
+
+  // The host:port pair to listen on for the web app endpoints.
+  //
+  // Defaults to `localhost:9999`.
+  optional string web_address = 3 [(buf.validate.field).string.host_and_port = true];
+
+  // Path to the database file.
+  //
+  // Defaults to `$XDG_DATA_HOME/erato/db.sqlite`
+  string db_filepath = 4;
+
+  // Root upstream URL for the archive.
+  string root_uri = 5 [(buf.validate.field).string.uri = true];
+
+  // Enable developer mode.
+  bool dev_mode = 6;
+
+  // The log levels.
+  enum LogLevel {
+    // buf:lint:ignore ENUM_NO_ALLOW_ALIAS
+    option allow_alias = true;
+
+    // Default log level.
+    LOG_LEVEL_UNSPECIFIED = 0;
+
+    // Verbose logging to assist in debugging. Includes INFO logs.
+    DEBUG = -4;
+
+    // Informational logging, such as access logs. Includes WARN logs.
+    INFO = 0;
+
+    // Warnings, such as unexpected behavior.  Includes ERROR logs.
+    WARN = 4;
+
+    // Errors, typically internal things indicating the service is misbehaving.
+    ERROR = 8;
+  }
+}

@@ -13,6 +13,9 @@ on:
       - main
       - v2
 
+permissions:
+  contents: read
+
 concurrency:
   group: ui-${{ github.ref }}
   cancel-in-progress: true

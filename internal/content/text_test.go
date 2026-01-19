@@ -88,17 +88,17 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three asterisks normalized",
 			input: "text\n***\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five asterisks normalized",
 			input: "text\n*****\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "spaced asterisks normalized",
 			input: "text\n* * *\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two asterisks not normalized",
@@ -115,12 +115,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three dashes normalized",
 			input: "text\n---\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five dashes normalized",
 			input: "text\n-----\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two dashes not normalized",
@@ -132,12 +132,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three underscores normalized",
 			input: "text\n___\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five underscores normalized",
 			input: "text\n_____\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two underscores not normalized",
@@ -149,12 +149,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three tildes normalized",
 			input: "text\n~~~\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five tildes normalized",
 			input: "text\n~~~~~\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two tildes not normalized",
@@ -166,12 +166,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three backticks normalized",
 			input: "text\n```\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five backticks normalized",
 			input: "text\n`````\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two backticks not normalized",
@@ -183,12 +183,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three equals normalized",
 			input: "text\n===\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five equals normalized",
 			input: "text\n=====\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two equals not normalized",
@@ -200,12 +200,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three hashes alone normalized",
 			input: "text\n###\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five hashes alone normalized",
 			input: "text\n#####\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "hash heading not normalized",
@@ -227,12 +227,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "HR with leading whitespace normalized",
 			input: "text\n   ***\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "HR with trailing whitespace normalized",
 			input: "text\n***   \nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 
 		// Sandwich headers - converted to ATX headers
@@ -254,7 +254,7 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "non-sandwich HR preserved",
 			input: "text\n---\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 
 		// Isolated dash prefix removal (dialog markers)

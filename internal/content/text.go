@@ -48,14 +48,14 @@ func ScrubTextDocument() TransformerFunc {
 		input = bytes.ReplaceAll(input, []byte("\r\n"), []byte("\n"))
 		input = bytes.ReplaceAll(input, []byte("\r"), []byte("\n"))
 
+		input = wrapEmailHeaders(input)
 		input = addParagraphWhitespace.ReplaceAll(input, []byte("\n\n"))
 		input = removeIndenting.ReplaceAll(input, nil)
 		input = sandwichHeaderEquals.ReplaceAll(input, []byte("# $1"))
 		input = sandwichHeaderDash.ReplaceAll(input, []byte("## $1"))
-		input = decorativeHR.ReplaceAll(input, []byte("---"))
+		input = decorativeHR.ReplaceAll(input, []byte("***"))
 		input = trailingWhitespace.ReplaceAll(input, nil)
 		input = stripIsolatedDashPrefixes(input)
-		input = wrapEmailHeaders(input)
 		return input, nil
 	}
 }

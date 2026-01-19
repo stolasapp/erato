@@ -38,6 +38,69 @@ func ScrubTextDocument() TransformerFunc {
 		input = removeIndenting.ReplaceAll(input, nil)
 		input = decorativeHR.ReplaceAll(input, []byte("---"))
 		input = trailingWhitespace.ReplaceAll(input, nil)
+		input = stripIsolatedDashPrefixes(input)
 		return input, nil
+	}
+}
+
+// stripIsolatedDashPrefixes removes leading dash prefixes from lines that appear
+// to be dialog markers rather than list items. Handles both "- text" and "-text"
+// patterns. A dash-prefixed line is considered isolated (and thus a dialog
+// marker) if it's not part of a consecutive sequence of dash-prefixed lines
+// (ignoring blank lines between them).
+func stripIsolatedDashPrefixes(input []byte) []byte {
+	lines := bytes.Split(input, []byte("\n"))
+
+	for idx, line := range lines {
+		stripLen := dialogDashPrefixLen(line)
+		if stripLen == 0 {
+			continue
+		}
+
+		// Check if isolated (no adjacent dash lines, skipping blanks)
+		hasAdjacent := false
+		for j := idx - 1; j >= 0 && !hasAdjacent; j-- {
+			if len(bytes.TrimSpace(lines[j])) == 0 {
+				continue
+			}
+			hasAdjacent = dialogDashPrefixLen(lines[j]) > 0
+			break
+		}
+		for j := idx + 1; j < len(lines) && !hasAdjacent; j++ {
+			if len(bytes.TrimSpace(lines[j])) == 0 {
+				continue
+			}
+			hasAdjacent = dialogDashPrefixLen(lines[j]) > 0
+			break
+		}
+
+		if !hasAdjacent {
+			lines[idx] = line[stripLen:]
+		}
+	}
+
+	return bytes.Join(lines, []byte("\n"))
+}
+
+// Dialog dash prefix lengths.
+const (
+	dashSpacePrefixLen = 2 // "- "
+	dashOnlyPrefixLen  = 1 // "-"
+)
+
+// dialogDashPrefixLen returns the length of a dialog dash prefix if present.
+// Returns 2 for "- " (dash-space), 1 for "-X" where X is not a dash or space,
+// and 0 if no dialog prefix is found.
+func dialogDashPrefixLen(line []byte) int {
+	if len(line) < dashSpacePrefixLen || line[0] != '-' {
+		return 0
+	}
+	switch line[1] {
+	case ' ':
+		return dashSpacePrefixLen // "- text"
+	case '-':
+		return 0 // "--" is not a dialog marker
+	default:
+		return dashOnlyPrefixLen // "-text" (e.g., -"dialog")
 	}
 }

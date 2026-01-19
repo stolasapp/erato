@@ -233,6 +233,68 @@ func TestScrubTextDocument(t *testing.T) {
 			input: "text\n***   \nmore text",
 			want:  "text\n---\nmore text",
 		},
+
+		// Isolated dash prefix removal (dialog markers)
+		{
+			name:  "isolated dash prefix stripped",
+			input: "some text\n- dialog line\nmore text",
+			want:  "some text\ndialog line\nmore text",
+		},
+		{
+			name:  "isolated dash with blank lines stripped",
+			input: "some text\n\n- dialog line\n\nmore text",
+			want:  "some text\n\ndialog line\n\nmore text",
+		},
+		{
+			name:  "consecutive dash lines preserved as list",
+			input: "some text\n- item 1\n- item 2\nmore text",
+			want:  "some text\n- item 1\n- item 2\nmore text",
+		},
+		{
+			name:  "dash lines with blank between preserved as list",
+			input: "some text\n- item 1\n\n- item 2\nmore text",
+			want:  "some text\n- item 1\n\n- item 2\nmore text",
+		},
+		{
+			name:  "multiple isolated dashes stripped",
+			input: "text\n- dialog 1\nnarration\n- dialog 2\nmore text",
+			want:  "text\ndialog 1\nnarration\ndialog 2\nmore text",
+		},
+		{
+			name:  "dash at start of document isolated",
+			input: "- opening line\nsome text",
+			want:  "opening line\nsome text",
+		},
+		{
+			name:  "dash at end of document isolated",
+			input: "some text\n- closing line",
+			want:  "some text\nclosing line",
+		},
+		{
+			name:  "three consecutive dashes preserved",
+			input: "text\n- one\n- two\n- three\nmore",
+			want:  "text\n- one\n- two\n- three\nmore",
+		},
+		{
+			name:  "isolated dash without space stripped",
+			input: "some text\n-\"dialog line\"\nmore text",
+			want:  "some text\n\"dialog line\"\nmore text",
+		},
+		{
+			name:  "consecutive dashes without space preserved",
+			input: "text\n-\"item 1\"\n-\"item 2\"\nmore",
+			want:  "text\n-\"item 1\"\n-\"item 2\"\nmore",
+		},
+		{
+			name:  "mixed dash styles treated as list",
+			input: "text\n- item 1\n-\"item 2\"\nmore",
+			want:  "text\n- item 1\n-\"item 2\"\nmore",
+		},
+		{
+			name:  "double dash not treated as dialog",
+			input: "text\n--separator\nmore",
+			want:  "text\n--separator\nmore",
+		},
 	}
 
 	for _, tt := range tests {

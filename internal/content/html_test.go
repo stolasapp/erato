@@ -130,6 +130,38 @@ func TestScrubHTML(t *testing.T) {
 			want:  "<p>HelloWorld</p>",
 		},
 
+		// Spacer block removal (blocks containing only br and whitespace)
+		{
+			name:  "removes p containing only br",
+			input: "<p>Hello</p><p><br></p><p>World</p>",
+			want:  "<p>Hello</p><p>World</p>",
+		},
+		{
+			name:  "removes p containing br with whitespace",
+			input: "<p>Hello</p><p> <br> </p><p>World</p>",
+			want:  "<p>Hello</p><p>World</p>",
+		},
+		{
+			name:  "removes p containing br with newlines",
+			input: "<p>Hello</p><p>\n<br>\n</p><p>World</p>",
+			want:  "<p>Hello</p><p>World</p>",
+		},
+		{
+			name:  "removes p containing multiple brs",
+			input: "<p>Hello</p><p><br><br></p><p>World</p>",
+			want:  "<p>Hello</p><p>World</p>",
+		},
+		{
+			name:  "removes div containing only br",
+			input: "<p>Hello</p><div><br></div><p>World</p>",
+			want:  "<p>Hello</p><p>World</p>",
+		},
+		{
+			name:  "keeps p with text and br",
+			input: "<p>Hello<br>World</p>",
+			want:  "<p>Hello<br/>World</p>",
+		},
+
 		// Empty block replacement with BR
 		{
 			name:  "replaces empty div with br",

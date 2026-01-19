@@ -131,7 +131,7 @@ func EntryContentActions(entry *eratov1.Entry) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		slug := EntrySlug(entry.GetPath())
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<nav id=\"content-actions\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -234,7 +234,7 @@ func ChapterContentActions(chapter *eratov1.Chapter) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		slug := ChapterSlug(chapter.GetPath())
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<nav id=\"content-actions\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

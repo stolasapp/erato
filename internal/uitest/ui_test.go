@@ -152,6 +152,9 @@ func TestUI(t *testing.T) {
 	t.Run("MarkReadFilterPreservation", func(t *testing.T) {
 		testMarkReadFilterPreservation(t, newPage, server)
 	})
+	t.Run("ContentPageToggle", func(t *testing.T) {
+		testContentPageToggle(t, newPage)
+	})
 }
 
 // navigateToCategory clicks the first visible category and waits for navigation.
@@ -848,4 +851,120 @@ func testMarkReadFilterPreservation(t *testing.T, newPage func(*testing.T) *test
 	storiesBtn = findFilterSegment(p, "Stories")
 	require.NotNil(t, storiesBtn)
 	assert.Equal(t, "true", *storiesBtn.MustAttribute("aria-pressed"), "Stories filter should still be active")
+}
+
+// testContentPageToggle tests that toggle buttons on content pages (story/chapter)
+// correctly update only the action buttons, not the site header.
+// Regression test for HTMX misconfiguration where clicking toggles replaced action buttons with header content.
+func testContentPageToggle(t *testing.T, newPage func(*testing.T) *testPage) {
+	t.Run("Story", func(t *testing.T) {
+		p := newPage(t)
+
+		if !navigateToStory(p) {
+			t.Skip("no stories found")
+		}
+
+		// Verify initial state: site header nav exists with site title
+		siteNav := p.el("header.site-header nav")
+		require.NotNil(t, siteNav)
+		siteTitleBefore := p.el("header.site-header .site-title").MustText()
+
+		// Find the content header's action nav
+		contentNav := p.el("main > header > nav")
+		require.NotNil(t, contentNav, "content header should have action nav")
+
+		// Count action buttons before click
+		actionButtonsBefore := p.els("main > header > nav > button")
+		require.NotEmpty(t, actionButtonsBefore, "should have action buttons")
+		buttonCountBefore := len(actionButtonsBefore)
+
+		// Get the star button's initial state
+		starBtn := p.el("main > header > nav > button[data-action='star']")
+		require.NotNil(t, starBtn)
+		initialStarState := starBtn.MustAttribute("aria-pressed")
+
+		// Click the star button
+		starBtn.MustClick()
+		p.waitStable()
+
+		// Verify site header is unchanged
+		siteTitleAfter := p.el("header.site-header .site-title").MustText()
+		assert.Equal(t, siteTitleBefore, siteTitleAfter, "site header should be unchanged after toggle")
+
+		// Verify action nav still exists with same number of buttons
+		contentNavAfter := p.elMaybe("main > header > nav")
+		require.NotNil(t, contentNavAfter, "content header should still have action nav after toggle")
+
+		actionButtonsAfter := p.els("main > header > nav > button")
+		assert.Len(t, actionButtonsAfter, buttonCountBefore, "should have same number of action buttons after toggle")
+
+		// Verify the star state actually changed
+		starBtnAfter := p.el("main > header > nav > button[data-action='star']")
+		finalStarState := starBtnAfter.MustAttribute("aria-pressed")
+		assert.NotEqual(t, *initialStarState, *finalStarState, "star state should have changed after click")
+	})
+
+	t.Run("Chapter", func(t *testing.T) {
+		p := newPage(t)
+
+		if !navigateToAnthology(p) {
+			t.Skip("no anthologies found")
+		}
+
+		// Click on first chapter
+		chapters := p.els("div[role='list'] > article[data-kind='chapter']")
+		if len(chapters) == 0 {
+			t.Skip("no chapters found")
+		}
+		chapters[0].Timeout(defaultTimeout).MustElement("a").MustClick()
+		p.waitStable()
+
+		// Verify initial state
+		siteNav := p.el("header.site-header nav")
+		require.NotNil(t, siteNav)
+		siteTitleBefore := p.el("header.site-header .site-title").MustText()
+
+		// Find the content header's action nav
+		contentNav := p.el("main > header > nav")
+		require.NotNil(t, contentNav, "content header should have action nav")
+
+		// Get view button (chapters only have view toggle)
+		viewBtn := p.el("main > header > nav > button[data-action='view']")
+		require.NotNil(t, viewBtn)
+		initialViewState := viewBtn.MustAttribute("aria-pressed")
+
+		// Click the view button
+		viewBtn.MustClick()
+		time.Sleep(500 * time.Millisecond) // Allow HTMX request to complete
+
+		// Use Eventually to wait for the HTMX update to complete (instead of waitStable which can hang)
+		// Verify site header is unchanged
+		var siteTitleAfter string
+		require.Eventually(t, func() bool {
+			el, _ := p.Page.Timeout(time.Second).Element("header.site-header .site-title")
+			if el == nil {
+				return false
+			}
+			siteTitleAfter, _ = el.Text()
+			return siteTitleAfter != ""
+		}, defaultTimeout, 100*time.Millisecond, "site header should still exist after toggle")
+		assert.Equal(t, siteTitleBefore, siteTitleAfter, "site header should be unchanged after toggle")
+
+		// Verify action nav still exists and view state changed
+		var finalViewState *string
+		require.Eventually(t, func() bool {
+			contentNavAfter, _ := p.Page.Timeout(time.Second).Element("main > header > nav")
+			if contentNavAfter == nil {
+				return false
+			}
+			viewBtnAfter, _ := p.Page.Timeout(time.Second).Element("main > header > nav > button[data-action='view']")
+			if viewBtnAfter == nil {
+				return false
+			}
+			finalViewState, _ = viewBtnAfter.Attribute("aria-pressed")
+			return finalViewState != nil && *finalViewState != *initialViewState
+		}, defaultTimeout, 100*time.Millisecond, "view state should change after click")
+
+		assert.NotEqual(t, *initialViewState, *finalViewState, "view state should have changed after click")
+	})
 }

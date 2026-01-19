@@ -66,6 +66,9 @@ var (
 	// detailsOpenAttr matches the valid values for the details element's open
 	// attribute (empty string or "open", case insensitive).
 	detailsOpenAttr = regexp.MustCompile(`(?i)^(|open)$`)
+
+	// emailHeadersClass matches only the "email-headers" class value.
+	emailHeadersClass = regexp.MustCompile(`^email-headers$`)
 )
 
 // NormalizeNBSP replaces non-breaking space entities and characters with
@@ -142,6 +145,9 @@ func sanitizer() *bluemonday.Policy {
 
 	policy.AllowAttrs("open").
 		Matching(detailsOpenAttr).
+		OnElements("details")
+	policy.AllowAttrs("class").
+		Matching(emailHeadersClass).
 		OnElements("details")
 
 	policy.AllowAttrs("cite").

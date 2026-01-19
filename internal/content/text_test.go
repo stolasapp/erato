@@ -301,16 +301,14 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "email headers wrapped in details",
 			input: "From: Author <a@b.com>\nSubject: Test\n\nBody text here.",
-			want: "<details>\n<summary>Email headers</summary>\n<small>\n" +
-				"From: Author &lt;a@b.com&gt;\nSubject: Test\n" +
-				"</small>\n</details>\n\nBody text here.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"From: Author &lt;a@b.com&gt;<br>\nSubject: Test\n</details>\n\nBody text here.",
 		},
 		{
 			name:  "email headers with HR separator",
 			input: "Date: Wed, 14 Jan 2026\nFrom: Author\n---\n\nBody text.",
-			want: "<details>\n<summary>Email headers</summary>\n<small>\n" +
-				"Date: Wed, 14 Jan 2026\nFrom: Author\n" +
-				"</small>\n</details>\n\nBody text.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Date: Wed, 14 Jan 2026<br>\nFrom: Author\n</details>\n\nBody text.",
 		},
 		{
 			name:  "no email headers unchanged",
@@ -320,9 +318,8 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "single header line",
 			input: "Subject: Hello\n\nBody.",
-			want: "<details>\n<summary>Email headers</summary>\n<small>\n" +
-				"Subject: Hello\n" +
-				"</small>\n</details>\n\nBody.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Subject: Hello\n</details>\n\nBody.",
 		},
 		{
 			name:  "headers must be at start",

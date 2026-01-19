@@ -261,6 +261,16 @@ func TestSanitizeHTML(t *testing.T) {
 			input: "<p>Text<img src=\"image.jpg\">more</p>",
 			want:  "<p>Textmore</p>",
 		},
+		{
+			name:  "allows email-headers class on details",
+			input: `<details class="email-headers"><summary>Email</summary>Content</details>`,
+			want:  `<details class="email-headers"><summary>Email</summary>Content</details>`,
+		},
+		{
+			name:  "strips other classes on details",
+			input: `<details class="other-class"><summary>Title</summary>Content</details>`,
+			want:  `<details><summary>Title</summary>Content</details>`,
+		},
 	}
 
 	for _, tt := range tests {

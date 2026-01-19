@@ -56,7 +56,7 @@ func Toggle(action Action, slug string, active bool) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = toggle(action, slug, active, "closest article").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = toggle(action, slug, active, TargetClosestArticle).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -64,7 +64,7 @@ func Toggle(action Action, slug string, active bool) templ.Component {
 	})
 }
 
-// ContentToggle renders a toggle button for content pages (targets closest nav).
+// ContentToggle renders a toggle button for content pages (targets #content-actions).
 func ContentToggle(action Action, slug string, active bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -86,7 +86,7 @@ func ContentToggle(action Action, slug string, active bool) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = toggle(action, slug, active, "closest nav").Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = toggle(action, slug, active, TargetContentActions).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

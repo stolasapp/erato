@@ -10,6 +10,8 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stolasapp/erato/internal/app/component"
 )
 
 const (
@@ -46,15 +48,29 @@ func (p *testPage) elMaybe(selector string) *rod.Element {
 	return el
 }
 
-// click clicks an element found by selector.
+// click clicks an element found by selector and waits for page stability.
 func (p *testPage) click(selector string) {
 	p.el(selector).MustClick()
 	p.waitStable()
 }
 
+// clickAndWaitIdle clicks an element and waits for network requests to complete.
+// Use this for HTMX triggers where the response swaps DOM content.
+func (p *testPage) clickAndWaitIdle(el *rod.Element) {
+	el.MustClick()
+	p.waitRequestIdle()
+}
+
 // waitStable waits for the page to stabilize after HTMX updates.
 func (p *testPage) waitStable() {
 	p.Page.Timeout(stableTimeout).MustWaitStable()
+}
+
+// waitRequestIdle waits for all network requests to complete.
+// Use this instead of waitStable when dealing with HTMX swaps that may
+// cause continuous DOM updates (e.g., content pages with dynamic elements).
+func (p *testPage) waitRequestIdle() {
+	p.Page.Timeout(defaultTimeout).MustWaitRequestIdle()()
 }
 
 // waitLoad waits for the page to fully load (for full page navigations).
@@ -152,18 +168,21 @@ func TestUI(t *testing.T) {
 	t.Run("MarkReadFilterPreservation", func(t *testing.T) {
 		testMarkReadFilterPreservation(t, newPage, server)
 	})
+	t.Run("ContentPageToggle", func(t *testing.T) {
+		testContentPageToggle(t, newPage)
+	})
 }
 
 // navigateToCategory clicks the first visible category and waits for navigation.
 func navigateToCategory(p *testPage) {
-	p.click("div[role='list'] > article:not([data-hidden]) > a")
+	p.click(SelectorListItem + ":not([data-hidden]) > a")
 }
 
 // navigateToStory navigates to a category and clicks the first visible story.
 // Returns false if no stories are available.
 func navigateToStory(p *testPage) bool {
 	navigateToCategory(p)
-	stories := p.els("div[role='list'] > article:not([data-hidden])[data-kind='story']")
+	stories := p.els(VisibleItemByKind(component.KindStory))
 	if len(stories) == 0 {
 		return false
 	}
@@ -176,7 +195,7 @@ func navigateToStory(p *testPage) bool {
 // Returns false if no anthologies are available.
 func navigateToAnthology(p *testPage) bool {
 	navigateToCategory(p)
-	anthologies := p.els("div[role='list'] > article:not([data-hidden])[data-kind='anthology']")
+	anthologies := p.els(VisibleItemByKind(component.KindAnthology))
 	if len(anthologies) == 0 {
 		return false
 	}
@@ -185,9 +204,24 @@ func navigateToAnthology(p *testPage) bool {
 	return true
 }
 
+// navigateToChapter navigates to an anthology and clicks the first chapter.
+// Returns false if no chapters are available.
+func navigateToChapter(p *testPage) bool {
+	if !navigateToAnthology(p) {
+		return false
+	}
+	chapters := p.els(SelectorChapterItem)
+	if len(chapters) == 0 {
+		return false
+	}
+	chapters[0].Timeout(defaultTimeout).MustElement("a").MustClick()
+	p.waitStable()
+	return true
+}
+
 // findFilterButton finds a filter toggle button by text content.
 func findFilterButton(p *testPage, text string) *rod.Element {
-	for _, btn := range p.els("nav.filters > button") {
+	for _, btn := range p.els(SelectorFilters + " > button") {
 		if strings.Contains(btn.MustText(), text) {
 			return btn
 		}
@@ -201,13 +235,14 @@ func findFilterSegment(p *testPage, text string) *rod.Element {
 	const maxRetries = 10
 	const retryDelay = 100 * time.Millisecond
 
+	segmentSelector := SelectorFilters + " [role='group'] button"
 	for range maxRetries {
 		// Wait for at least one segment button to exist
-		if _, err := p.Page.Timeout(defaultTimeout).Element("nav.filters [role='group'] button"); err != nil {
+		if _, err := p.Page.Timeout(defaultTimeout).Element(segmentSelector); err != nil {
 			return nil
 		}
 
-		for _, seg := range p.els("nav.filters [role='group'] button") {
+		for _, seg := range p.els(segmentSelector) {
 			if strings.TrimSpace(seg.MustText()) == text {
 				return seg
 			}
@@ -220,9 +255,9 @@ func findFilterSegment(p *testPage, text string) *rod.Element {
 
 // ensureHiddenItem hides the first list item if none are hidden.
 func ensureHiddenItem(p *testPage) {
-	if len(p.els("div[role='list'] > article[data-hidden]")) == 0 {
-		firstItem := p.el("div[role='list'] > article")
-		firstItem.Timeout(defaultTimeout).MustElement("button[data-action='hide']").MustClick()
+	if len(p.els(SelectorListItem+"[data-hidden]")) == 0 {
+		firstItem := p.el(SelectorListItem)
+		firstItem.Timeout(defaultTimeout).MustElement(SelectorHideButton).MustClick()
 		p.waitStable()
 	}
 }
@@ -232,11 +267,11 @@ func testArchivePage(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
 	// Verify category list loads
-	require.NotNil(t, p.el("#list-container"))
-	assert.NotEmpty(t, p.els("div[role='list'] > article"), "expected at least one category")
+	require.NotNil(t, p.el(SelectorListContainer))
+	assert.NotEmpty(t, p.els(SelectorListItem), "expected at least one category")
 
 	// Verify filter bar with hidden filter (but no starred filter)
-	require.NotNil(t, p.el("nav.filters"))
+	require.NotNil(t, p.el(SelectorFilters))
 	require.NotNil(t, findFilterButton(p, "Hidden"), "expected Hidden filter button")
 	assert.Nil(t, findFilterButton(p, "Starred"), "category list should not have starred filter")
 }
@@ -247,10 +282,10 @@ func testCategoryPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	navigateToCategory(p)
 
 	// Verify entries load
-	assert.NotEmpty(t, p.els("div[role='list'] > article"), "expected at least one entry")
+	assert.NotEmpty(t, p.els(SelectorListItem), "expected at least one entry")
 
 	// Verify type filter segments
-	segments := p.els("nav.filters [role='group'] button")
+	segments := p.els(SelectorFilters + " [role='group'] button")
 	assert.Len(t, segments, 3, "expected All, Stories, Anthologies segments")
 
 	segmentTexts := make([]string, len(segments))
@@ -276,9 +311,9 @@ func testAnthologyPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	}
 
 	// Verify chapter list loads with no filter bar
-	assert.NotEmpty(t, p.els("div[role='list'] > article"), "anthology should have chapters")
-	assert.NotEmpty(t, p.els("div[role='list'] > article[data-kind='chapter']"), "chapters should have chapter data-kind")
-	assert.Empty(t, p.els("nav.filters"), "anthology page should not have filter bar")
+	assert.NotEmpty(t, p.els(SelectorListItem), "anthology should have chapters")
+	assert.NotEmpty(t, p.els(SelectorChapterItem), "chapters should have chapter data-kind")
+	assert.Empty(t, p.els(SelectorFilters), "anthology page should not have filter bar")
 }
 
 // testStoryPage tests navigating to a story and viewing content.
@@ -299,18 +334,18 @@ func testBreadcrumbNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	p := newPage(t)
 
 	// Get category name before navigating
-	categoryLink := p.el("div[role='list'] > article:not([data-hidden]) > a")
+	categoryLink := p.el(SelectorListItem + ":not([data-hidden]) > a")
 	categoryName := categoryLink.MustText()
 	categoryLink.MustClick()
 	p.waitStable()
 
 	// Verify breadcrumb shows category
-	breadcrumbs := p.el(".breadcrumbs")
+	breadcrumbs := p.el(SelectorBreadcrumbs)
 	require.NotNil(t, breadcrumbs)
 	assert.Contains(t, breadcrumbs.MustText(), categoryName)
 
 	// Navigate home via site title
-	p.click(".site-title a")
+	p.click(SelectorSiteTitle + " a")
 	assert.Equal(t, server.URL("/"), p.MustInfo().URL)
 }
 
@@ -318,13 +353,13 @@ func testBreadcrumbNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 func testFilterToggleNoLayoutShift(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
-	hiddenBtn := p.el("nav.filters > button")
+	hiddenBtn := p.el(SelectorFilters + " > button")
 	initialBox := hiddenBtn.MustShape().Box()
 
 	hiddenBtn.MustClick()
 	p.waitStable()
 
-	hiddenBtn = p.el("nav.filters > button")
+	hiddenBtn = p.el(SelectorFilters + " > button")
 	afterBox := hiddenBtn.MustShape().Box()
 
 	assert.InDelta(t, initialBox.Y, afterBox.Y, 2.0, "button should not shift vertically")
@@ -358,7 +393,7 @@ func testArchiveHiddenFilter(t *testing.T, newPage func(*testing.T) *testPage) {
 	// Visibility test - ensure we have a hidden item
 	ensureHiddenItem(p)
 
-	hiddenItems := p.els("div[role='list'] > article[data-hidden]")
+	hiddenItems := p.els(SelectorListItem + "[data-hidden]")
 	require.NotEmpty(t, hiddenItems, "should have hidden items")
 
 	// Hidden items should be invisible
@@ -372,7 +407,7 @@ func testArchiveHiddenFilter(t *testing.T, newPage func(*testing.T) *testPage) {
 	p.waitStable()
 
 	// Hidden items should now be visible
-	for _, item := range p.els("div[role='list'] > article[data-hidden]") {
+	for _, item := range p.els(SelectorListItem + "[data-hidden]") {
 		box := item.MustShape().Box()
 		assert.Greater(t, box.Height, 1.0, "hidden item should be visible when filter is on")
 	}
@@ -383,8 +418,8 @@ func testCategoryTypeFilter(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 	navigateToCategory(p)
 
-	if len(p.els("div[role='list'] > article[data-kind='story']")) == 0 ||
-		len(p.els("div[role='list'] > article[data-kind='anthology']")) == 0 {
+	if len(p.els(SelectorStoryItem)) == 0 ||
+		len(p.els(SelectorAnthologyItem)) == 0 {
 		t.Skip("need both stories and anthologies to test type filter")
 	}
 
@@ -442,7 +477,7 @@ func testCategoryHiddenFilter(t *testing.T, newPage func(*testing.T) *testPage) 
 
 	ensureHiddenItem(p)
 
-	hiddenItems := p.els("div[role='list'] > article[data-hidden]")
+	hiddenItems := p.els(SelectorListItem + "[data-hidden]")
 	require.NotEmpty(t, hiddenItems, "should have hidden items")
 
 	// Verify hidden items not visible
@@ -456,7 +491,7 @@ func testCategoryHiddenFilter(t *testing.T, newPage func(*testing.T) *testPage) 
 	p.waitStable()
 
 	// Verify hidden items now visible
-	for _, item := range p.els("div[role='list'] > article[data-hidden]") {
+	for _, item := range p.els(SelectorListItem + "[data-hidden]") {
 		box := item.MustShape().Box()
 		assert.Greater(t, box.Height, 1.0, "hidden item should be visible when filter is on")
 	}
@@ -479,16 +514,16 @@ var resourceTestCases = []resourceTestCase{
 			navigateToCategory(p)
 			return true
 		},
-		itemSelector:   "div[role='list'] > article[data-kind='story']:not([data-hidden])",
-		backSelector:   ".breadcrumbs a",
+		itemSelector:   VisibleItemByKind(component.KindStory),
+		backSelector:   SelectorBreadcrumbs + " a",
 		backLinkIndex:  0,
 		contentElement: "article",
 	},
 	{
 		name:           "Chapter",
 		navigate:       navigateToAnthology,
-		itemSelector:   "div[role='list'] > article[data-kind='chapter']",
-		backSelector:   ".breadcrumbs a",
+		itemSelector:   SelectorChapterItem,
+		backSelector:   SelectorBreadcrumbs + " a",
 		backLinkIndex:  1, // Second breadcrumb link is the anthology
 		contentElement: "article",
 	},
@@ -498,8 +533,8 @@ var resourceTestCases = []resourceTestCase{
 			navigateToCategory(p)
 			return true
 		},
-		itemSelector:   "div[role='list'] > article[data-kind='anthology']:not([data-hidden])",
-		backSelector:   ".breadcrumbs a",
+		itemSelector:   VisibleItemByKind(component.KindAnthology),
+		backSelector:   SelectorBreadcrumbs + " a",
 		backLinkIndex:  0,
 		contentElement: "div[role='list']",
 	},
@@ -543,7 +578,7 @@ func testAutoView(t *testing.T, newPage func(*testing.T) *testPage) {
 			itemAfter := p.elMaybe(selector)
 			require.NotNil(t, itemAfter, "should find %s after navigating back (selector: %s)", tc.name, selector)
 
-			viewToggle, err := itemAfter.Timeout(defaultTimeout).Element("button[data-action='view']")
+			viewToggle, err := itemAfter.Timeout(defaultTimeout).Element(SelectorViewButton)
 			require.NoError(t, err, "should find view toggle for %s", tc.name)
 
 			ariaPressed := viewToggle.MustAttribute("aria-pressed")
@@ -596,7 +631,7 @@ func testStarToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 	navigateToCategory(p)
 
 	// Find an entry to test with and get its ID
-	items := p.els("div[role='list'] > article:not([data-hidden])")
+	items := p.els(SelectorListItem + ":not([data-hidden])")
 	require.NotEmpty(t, items, "expected at least one entry")
 	itemID, err := items[0].Attribute("id")
 	require.NoError(t, err)
@@ -606,7 +641,7 @@ func testStarToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 
 	// Get initial star state
 	item := p.el(itemSelector)
-	starBtn := item.Timeout(defaultTimeout).MustElement("button[data-action='star']")
+	starBtn := item.Timeout(defaultTimeout).MustElement(SelectorStarButton)
 	initialPressed := starBtn.MustAttribute("aria-pressed")
 	require.NotNil(t, initialPressed)
 
@@ -616,7 +651,7 @@ func testStarToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 
 	// Re-query both item and button after HTMX update
 	item = p.el(itemSelector)
-	starBtn = item.Timeout(defaultTimeout).MustElement("button[data-action='star']")
+	starBtn = item.Timeout(defaultTimeout).MustElement(SelectorStarButton)
 	afterPressed := starBtn.MustAttribute("aria-pressed")
 	require.NotNil(t, afterPressed)
 
@@ -632,7 +667,7 @@ func testStarToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 
 	// Re-query again
 	item = p.el(itemSelector)
-	starBtn = item.Timeout(defaultTimeout).MustElement("button[data-action='star']")
+	starBtn = item.Timeout(defaultTimeout).MustElement(SelectorStarButton)
 	finalPressed := starBtn.MustAttribute("aria-pressed")
 	assert.Equal(t, *initialPressed, *finalPressed, "star state should return to initial after second toggle")
 }
@@ -641,19 +676,9 @@ func testStarToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 func testChapterPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
-	if !navigateToAnthology(p) {
-		t.Skip("no anthologies found")
-	}
-
-	// Get first chapter
-	chapters := p.els("div[role='list'] > article[data-kind='chapter']")
-	if len(chapters) == 0 {
+	if !navigateToChapter(p) {
 		t.Skip("no chapters found")
 	}
-
-	// Click to view chapter content
-	chapters[0].Timeout(defaultTimeout).MustElement("a").MustClick()
-	p.waitStable()
 
 	// Verify content loads
 	content := p.el("article")
@@ -661,10 +686,8 @@ func testChapterPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	assert.NotEmpty(t, content.MustText(), "expected chapter content to have text")
 
 	// Verify breadcrumbs show anthology
-	breadcrumbs := p.el(".breadcrumbs")
-	require.NotNil(t, breadcrumbs)
 	// Should have at least 3 links: Archive > Category > Anthology
-	breadcrumbLinks := p.els(".breadcrumbs a")
+	breadcrumbLinks := p.els(SelectorBreadcrumbs + " a")
 	assert.GreaterOrEqual(t, len(breadcrumbLinks), 3, "chapter should have at least 3 breadcrumb links")
 }
 
@@ -674,16 +697,16 @@ func testFilterCombination(t *testing.T, newPage func(*testing.T) *testPage) {
 	navigateToCategory(p)
 
 	// Ensure we have both stories and anthologies, and at least one hidden item
-	stories := p.els("div[role='list'] > article[data-kind='story']")
-	anthologies := p.els("div[role='list'] > article[data-kind='anthology']")
+	stories := p.els(SelectorStoryItem)
+	anthologies := p.els(SelectorAnthologyItem)
 	if len(stories) == 0 || len(anthologies) == 0 {
 		t.Skip("need both stories and anthologies to test filter combination")
 	}
 
 	// Hide a story if none are hidden
-	hiddenStories := p.els("div[role='list'] > article[data-kind='story'][data-hidden]")
+	hiddenStories := p.els(HiddenItemByKind(component.KindStory))
 	if len(hiddenStories) == 0 {
-		stories[0].Timeout(defaultTimeout).MustElement("button[data-action='hide']").MustClick()
+		stories[0].Timeout(defaultTimeout).MustElement(SelectorHideButton).MustClick()
 		p.waitStable()
 	}
 
@@ -694,14 +717,14 @@ func testFilterCombination(t *testing.T, newPage func(*testing.T) *testPage) {
 	p.waitStable()
 
 	// Should see only stories (minus hidden ones)
-	visibleItems := p.els("div[role='list'] > article:not([data-hidden])")
+	visibleItems := p.els(SelectorListItem + ":not([data-hidden])")
 	for _, item := range visibleItems {
-		kind, err := item.Attribute("data-kind")
+		kind, err := item.Attribute(component.DataAttrKind)
 		require.NoError(t, err)
 		// Hidden items have minimal height, visible ones are stories
 		box := item.MustShape().Box()
 		if box.Height > 1.0 {
-			assert.Equal(t, "story", *kind, "visible items should be stories when Stories filter is active")
+			assert.Equal(t, component.KindStory, *kind, "visible items should be stories when Stories filter is active")
 		}
 	}
 
@@ -710,7 +733,7 @@ func testFilterCombination(t *testing.T, newPage func(*testing.T) *testPage) {
 	p.waitStable()
 
 	// Now hidden stories should be visible too
-	hiddenStories = p.els("div[role='list'] > article[data-kind='story'][data-hidden]")
+	hiddenStories = p.els(HiddenItemByKind(component.KindStory))
 	for _, item := range hiddenStories {
 		box := item.MustShape().Box()
 		assert.Greater(t, box.Height, 1.0, "hidden stories should be visible when both Stories and Hidden filters are active")
@@ -723,12 +746,12 @@ func testPaginationNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	navigateToCategory(p)
 
 	// Get the first entry on page 1
-	firstEntryPage1 := p.el("div[role='list'] > article:first-child")
+	firstEntryPage1 := p.el(SelectorListItem + ":first-child")
 	firstEntryID := firstEntryPage1.MustAttribute("id")
 	require.NotNil(t, firstEntryID, "first entry should have an ID")
 
 	// Find and click the Next button
-	nextBtn := p.elMaybe("nav.pagination a")
+	nextBtn := p.elMaybe(SelectorPagination + " a")
 	if nextBtn == nil {
 		t.Skip("pagination not available (fewer than 100 entries)")
 	}
@@ -745,7 +768,7 @@ func testPaginationNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	assert.Contains(t, url2, "page=", "page 2 should have page param in URL")
 
 	// Verify different content is shown
-	firstEntryPage2 := p.el("div[role='list'] > article:first-child")
+	firstEntryPage2 := p.el(SelectorListItem + ":first-child")
 	firstEntryID2 := firstEntryPage2.MustAttribute("id")
 	require.NotNil(t, firstEntryID2, "first entry on page 2 should have an ID")
 	assert.NotEqual(t, *firstEntryID, *firstEntryID2, "page 2 should show different entries than page 1")
@@ -754,7 +777,7 @@ func testPaginationNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	p.MustNavigateBack()
 	p.waitLoad()
 
-	firstEntryAfterBack := p.el("div[role='list'] > article:first-child")
+	firstEntryAfterBack := p.el(SelectorListItem + ":first-child")
 	firstEntryIDAfterBack := firstEntryAfterBack.MustAttribute("id")
 	assert.Equal(t, *firstEntryID, *firstEntryIDAfterBack, "browser back should return to page 1")
 }
@@ -777,7 +800,7 @@ func testBreadcrumbFilterPropagation(t *testing.T, newPage func(*testing.T) *tes
 	assert.Contains(t, categoryURL, "type=story", "category URL should have type filter")
 
 	// Click on a story to navigate to it
-	storyLink := p.elMaybe("div[role='list'] > article[data-kind='story']:not([data-hidden]) > a")
+	storyLink := p.elMaybe(VisibleItemByKind(component.KindStory) + " > a")
 	if storyLink == nil {
 		t.Skip("no visible stories found")
 	}
@@ -789,7 +812,7 @@ func testBreadcrumbFilterPropagation(t *testing.T, newPage func(*testing.T) *tes
 	assert.Contains(t, storyURL, "pf=", "story URL should have parent filter state")
 
 	// Find the category breadcrumb and verify it has the filter params
-	categoryBreadcrumb := p.el(".breadcrumbs a:first-of-type")
+	categoryBreadcrumb := p.el(SelectorBreadcrumbs + " a:first-of-type")
 	require.NotNil(t, categoryBreadcrumb)
 	breadcrumbHref := categoryBreadcrumb.MustAttribute("href")
 	require.NotNil(t, breadcrumbHref)
@@ -826,7 +849,7 @@ func testMarkReadFilterPreservation(t *testing.T, newPage func(*testing.T) *test
 	assert.Contains(t, categoryURL, "type=story", "should have type filter in URL")
 
 	// Click on the first visible story
-	storyLink := p.el("div[role='list'] > article[data-kind='story']:not([data-hidden]) > a")
+	storyLink := p.el(VisibleItemByKind(component.KindStory) + " > a")
 	storyLink.MustClick()
 	p.waitLoad()
 
@@ -848,4 +871,72 @@ func testMarkReadFilterPreservation(t *testing.T, newPage func(*testing.T) *test
 	storiesBtn = findFilterSegment(p, "Stories")
 	require.NotNil(t, storiesBtn)
 	assert.Equal(t, "true", *storiesBtn.MustAttribute("aria-pressed"), "Stories filter should still be active")
+}
+
+// contentToggleTestCase defines a test case for content page toggle tests.
+type contentToggleTestCase struct {
+	name         string
+	navigate     func(p *testPage) bool
+	toggleAction component.Action
+}
+
+var contentToggleTestCases = []contentToggleTestCase{
+	{
+		name:         "Story",
+		navigate:     navigateToStory,
+		toggleAction: component.ActionStar,
+	},
+	{
+		name:         "Chapter",
+		navigate:     navigateToChapter,
+		toggleAction: component.ActionView,
+	},
+}
+
+// testContentPageToggle tests that toggle buttons on content pages (story/chapter)
+// correctly update only the action buttons, not the site header.
+// Regression test for HTMX misconfiguration where clicking toggles replaced action buttons with header content.
+func testContentPageToggle(t *testing.T, newPage func(*testing.T) *testPage) {
+	for _, testCase := range contentToggleTestCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			p := newPage(t)
+
+			if !testCase.navigate(p) {
+				t.Skipf("no %ss found", strings.ToLower(testCase.name))
+			}
+
+			// Verify initial state: site header exists with site title
+			require.NotNil(t, p.el(SelectorSiteHeaderNav))
+			siteTitleBefore := p.el(SelectorSiteHeader + " " + SelectorSiteTitle).MustText()
+
+			// Find the content header's action nav and count buttons
+			require.NotNil(t, p.el(SelectorContentActions), "content header should have action nav")
+			buttonCountBefore := len(p.els(SelectorContentActions + " > button"))
+			require.Positive(t, buttonCountBefore, "should have action buttons")
+
+			// Get the toggle button's initial state
+			toggleSelector := ContentActionButton(string(testCase.toggleAction))
+			toggleBtn := p.el(toggleSelector)
+			initialState := toggleBtn.MustAttribute("aria-pressed")
+			require.NotNil(t, initialState)
+
+			// Click the toggle button and wait for HTMX request to complete
+			p.clickAndWaitIdle(toggleBtn)
+
+			// Verify site header is unchanged (re-query after HTMX swap)
+			siteTitleAfter := p.el(SelectorSiteHeader + " " + SelectorSiteTitle).MustText()
+			assert.Equal(t, siteTitleBefore, siteTitleAfter, "site header should be unchanged after toggle")
+
+			// Verify action nav still exists with same number of buttons
+			require.NotNil(t, p.elMaybe(SelectorContentActions),
+				"content header should still have action nav after toggle")
+			assert.Len(t, p.els(SelectorContentActions+" > button"), buttonCountBefore,
+				"should have same number of action buttons after toggle")
+
+			// Verify the toggle state changed (re-query after HTMX swap)
+			toggleBtnAfter := p.el(toggleSelector)
+			finalState := toggleBtnAfter.MustAttribute("aria-pressed")
+			assert.NotEqual(t, *initialState, *finalState, "toggle state should have changed after click")
+		})
+	}
 }

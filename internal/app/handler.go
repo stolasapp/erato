@@ -605,12 +605,12 @@ func render(ctx context.Context, component templ.Component, w io.Writer) error {
 }
 
 // renderOp renders either the content actions or list item component based on
-// the Hx-Target header. If the target is "content-actions" (content page actions),
+// the Hx-Target header. If the target is the content actions element ID,
 // it renders the content actions; otherwise, it renders the list item.
 func renderOp[T any](c echo.Context, item T, contentActions, listItem func(T) templ.Component) error {
 	target := c.Request().Header.Get("Hx-Target")
 	comp := listItem(item)
-	if target == "content-actions" {
+	if target == component.IDContentActions {
 		comp = contentActions(item)
 	}
 	return comp.Render(c.Request().Context(), c.Response().Writer)

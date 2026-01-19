@@ -34,7 +34,7 @@ type ListProps struct {
 
 // FilterBar renders the filter controls
 templ FilterBar(props ListProps) {
-	<nav class="filters">
+	<nav class={ ClassFilters }>
 		if props.ListType == ListTypeMixed {
 			<div role="group" aria-label="Filter by type">
 				@filterSegment(props, "all", "All", props.Filters.TypeFilter == "" || props.Filters.TypeFilter == "all")
@@ -60,7 +60,7 @@ templ filterSegment(props ListProps, typeVal, label string, active bool) {
 		aria-pressed={ fmt.Sprintf("%t", active) }
 		hx-get={ url }
 		hx-push-url={ url }
-		hx-target="#list-container"
+		hx-target={ TargetListContainer }
 		hx-swap="outerHTML"
 	>
 		{ label }
@@ -83,7 +83,7 @@ templ filterToggle(props ListProps, filter, label string, active bool) {
 		aria-pressed={ fmt.Sprintf("%t", active) }
 		hx-get={ url }
 		hx-push-url={ url }
-		hx-target="#list-container"
+		hx-target={ TargetListContainer }
 		hx-swap="outerHTML"
 	>
 		{ label }
@@ -128,12 +128,12 @@ templ ChapterItem(chapter *eratov1.Chapter, filters FilterParams) {
 	{{ slug := ChapterSlug(chapter.GetPath()) }}
 	<article
 		id={ slug }
-		data-kind="chapter"
+		data-kind={ KindChapter }
 		if chapter.HasReadTime() {
 			data-read
 		}
 	>
-		@Icon("chapter", 14)
+		@Icon(KindChapter, 14)
 		<a href={ templ.URL(filters.ForChild().BuildURL("/" + slug)) }>{ chapter.GetDisplayName() }</a>
 		@ResourceTimestamp(chapter)
 		<nav>
@@ -149,12 +149,12 @@ templ CategoryItem(category *eratov1.Category, filters FilterParams) {
 	{{ slug := CategorySlug(category.GetPath()) }}
 	<article
 		id={ slug }
-		data-kind="category"
+		data-kind={ KindCategory }
 		if category.GetHidden() {
 			data-hidden
 		}
 	>
-		@Icon("category", 14)
+		@Icon(KindCategory, 14)
 		<a href={ templ.URL(filters.ForChild().BuildURL("/" + slug)) }>{ category.GetDisplayName() }</a>
 		if category.GetDescription() != "" {
 			<p>{ category.GetDescription() }</p>
@@ -168,7 +168,7 @@ templ CategoryItem(category *eratov1.Category, filters FilterParams) {
 // EntryList renders a list of entries with filter bar and pagination
 templ EntryList(entries []*eratov1.Entry, props ListProps) {
 	<section
-		id="list-container"
+		id={ IDListContainer }
 		if props.Filters.ShowHidden {
 			data-show-hidden
 		}
@@ -192,7 +192,7 @@ templ EntryList(entries []*eratov1.Entry, props ListProps) {
 
 // ChapterList renders a list of chapters with pagination
 templ ChapterList(chapters []*eratov1.Chapter, props ListProps) {
-	<section id="list-container">
+	<section id={ IDListContainer }>
 		<header>
 			<h1>{ props.Title }</h1>
 		</header>
@@ -212,7 +212,7 @@ templ ChapterList(chapters []*eratov1.Chapter, props ListProps) {
 // CategoryList renders a list of categories with filter bar and pagination
 templ CategoryList(categories []*eratov1.Category, props ListProps) {
 	<section
-		id="list-container"
+		id={ IDListContainer }
 		if props.Filters.ShowHidden {
 			data-show-hidden
 		}
@@ -236,7 +236,7 @@ templ CategoryList(categories []*eratov1.Category, props ListProps) {
 // Uses a regular link (not HTMX) so the browser scrolls to top on navigation.
 templ Pagination(props ListProps) {
 	if props.NextPageToken != "" {
-		<nav class="pagination">
+		<nav class={ ClassPagination }>
 			<a href={ templ.URL(props.Filters.WithNextPage(props.NextPageToken).BuildURL(props.BaseURL)) }>
 				Next
 				@Icon("chevron-right", 16)
@@ -248,7 +248,7 @@ templ Pagination(props ListProps) {
 // kindToDataAttr converts an entry kind to a data attribute value
 func kindToDataAttr(kind eratov1.Entry_Kind) string {
 	if kind == eratov1.Entry_ANTHOLOGY {
-		return "anthology"
+		return KindAnthology
 	}
-	return "story"
+	return KindStory
 }

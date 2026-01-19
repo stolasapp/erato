@@ -26,7 +26,7 @@ templ EntryContentHeader(entry *eratov1.Entry) {
 // Used both in headers and for HTMX partial updates.
 templ EntryContentActions(entry *eratov1.Entry) {
 	{{ slug := EntrySlug(entry.GetPath()) }}
-	<nav id="content-actions">
+	<nav id={ IDContentActions }>
 		@ContentToggle(ActionView, slug, entry.HasViewTime())
 		@ContentToggle(ActionStar, slug, entry.GetStarred())
 		@ContentToggle(ActionHide, slug, entry.GetHidden())
@@ -46,7 +46,7 @@ templ ChapterContentHeader(chapter *eratov1.Chapter) {
 // Used both in headers and for HTMX partial updates.
 templ ChapterContentActions(chapter *eratov1.Chapter) {
 	{{ slug := ChapterSlug(chapter.GetPath()) }}
-	<nav id="content-actions">
+	<nav id={ IDContentActions }>
 		@ContentToggle(ActionView, slug, chapter.HasViewTime())
 	</nav>
 }

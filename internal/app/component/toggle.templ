@@ -28,12 +28,12 @@ var actionMetadata = map[Action]actionMeta{
 
 // Toggle renders a toggle button for list items (targets closest article).
 templ Toggle(action Action, slug string, active bool) {
-	@toggle(action, slug, active, "closest article")
+	@toggle(action, slug, active, TargetClosestArticle)
 }
 
 // ContentToggle renders a toggle button for content pages (targets #content-actions).
 templ ContentToggle(action Action, slug string, active bool) {
-	@toggle(action, slug, active, "#content-actions")
+	@toggle(action, slug, active, TargetContentActions)
 }
 
 templ toggle(action Action, slug string, active bool, target string) {

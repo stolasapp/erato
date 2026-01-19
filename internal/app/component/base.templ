@@ -15,9 +15,9 @@ templ Base(title, breadcrumbs templ.Component) {
 			<script src="/static/htmx.min.js"></script>
 		</head>
 		<body>
-			<header class="site-header">
+			<header class={ ClassSiteHeader }>
 				<nav>
-					<span class="site-title"><a href="/">Erato</a></span>
+					<span class={ ClassSiteTitle }><a href="/">Erato</a></span>
 					@breadcrumbs
 				</nav>
 			</header>
@@ -30,7 +30,7 @@ templ Base(title, breadcrumbs templ.Component) {
 
 // Breadcrumbs renders breadcrumb navigation with separators
 templ Breadcrumbs() {
-	<div class="breadcrumbs">
+	<div class={ ClassBreadcrumbs }>
 		{ children... }
 	</div>
 }

@@ -217,6 +217,18 @@ func TestScrubTextDocument(t *testing.T) {
 			input: "text\n##\nmore text",
 			want:  "text\n##\nmore text",
 		},
+
+		// Decorative HR - plus signs
+		{
+			name:  "three plus signs normalized",
+			input: "text\n+++\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "spaced plus signs normalized",
+			input: "text\n+ + +\nmore text",
+			want:  "text\n***\nmore text",
+		},
 		{
 			name:  "hashes with preceding text not normalized",
 			input: "text ###\nmore text",

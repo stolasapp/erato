@@ -19,10 +19,10 @@ var (
 	removeIndenting = regexp.MustCompile(`(?m)^[ \t]+`)
 
 	// Authors sometimes use repeated characters as decorative horizontal rules.
-	// This catches common patterns (*, -, _, ~, `, =, #, .) on their own line
+	// This catches common patterns (*, -, _, ~, `, =, #, ., +) on their own line
 	// that might confuse CommonMark into thinking they're code fences or
 	// headings. Only matches when the pattern is alone on a line.
-	decorativeHR = regexp.MustCompile(`(?m)^\s*([-=.*_~\x60#] ?){3,}\s*$`)
+	decorativeHR = regexp.MustCompile(`(?m)^\s*([-=.*_~\x60#+] ?){3,}\s*$`)
 
 	// sandwichHeaderDash converts "sandwich" headers using dashes to ATX h2.
 	// Matches 3+ dashes on lines above and below the header text.

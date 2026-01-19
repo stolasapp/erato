@@ -66,6 +66,9 @@ var (
 	// detailsOpenAttr matches the valid values for the details element's open
 	// attribute (empty string or "open", case insensitive).
 	detailsOpenAttr = regexp.MustCompile(`(?i)^(|open)$`)
+
+	// emailHeadersClass matches only the "email-headers" class value.
+	emailHeadersClass = regexp.MustCompile(`^email-headers$`)
 )
 
 // NormalizeNBSP replaces non-breaking space entities and characters with
@@ -112,6 +115,7 @@ func sanitizer() *bluemonday.Policy {
 		"br",
 		"cite",
 		"code",
+		"details",
 		"dfn",
 		"div",
 		"em",
@@ -142,6 +146,9 @@ func sanitizer() *bluemonday.Policy {
 
 	policy.AllowAttrs("open").
 		Matching(detailsOpenAttr).
+		OnElements("details")
+	policy.AllowAttrs("class").
+		Matching(emailHeadersClass).
 		OnElements("details")
 
 	policy.AllowAttrs("cite").
@@ -174,10 +181,11 @@ func sanitizer() *bluemonday.Policy {
 }
 
 // scrubHTMLSelection applies heuristics to clean up common HTML authoring
-// issues. Operations are applied in order: empty inline removal, empty block
-// replacement, then excessive BR collapsing.
+// issues. Operations are applied in order: empty inline removal, spacer block
+// removal, empty block replacement, then excessive BR collapsing.
 func scrubHTMLSelection(sel *goquery.Selection) {
 	removeEmptyInlineElements(sel)
+	removeSpacerBlocks(sel)
 	replaceEmptyBlocksWithBR(sel)
 	collapseExcessiveBRs(sel)
 }
@@ -215,6 +223,43 @@ func removeEmptyInlineElements(sel *goquery.Selection) {
 			break
 		}
 	}
+}
+
+// removeSpacerBlocks removes block elements that contain only <br> elements
+// and whitespace. These are commonly used to force extra vertical spacing
+// (e.g., <p><br></p>) and should be stripped entirely.
+func removeSpacerBlocks(sel *goquery.Selection) {
+	sel.Find(blockSelector).Each(func(_ int, el *goquery.Selection) {
+		if isSpacerBlock(el) {
+			el.Remove()
+		}
+	})
+}
+
+// isSpacerBlock returns true if the element contains only <br> elements and
+// whitespace text nodes. Such elements are used to force extra vertical spacing
+// and serve no semantic purpose.
+func isSpacerBlock(selection *goquery.Selection) bool {
+	node := selection.Get(0)
+	if node == nil {
+		return false
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		switch child.Type {
+		case html.TextNode:
+			if strings.TrimSpace(child.Data) != "" {
+				return false
+			}
+		case html.ElementNode:
+			if child.Data != "br" {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	// Must have at least one <br> to be a spacer (otherwise it's just empty)
+	return selection.Find("br").Length() > 0
 }
 
 // replaceEmptyBlocksWithBR replaces empty block elements with a <br> to

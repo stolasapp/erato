@@ -12,6 +12,7 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer/html"
 )
 
 // HTMLToMarkdown converts an HTML input into CommonMark-compatible Markdown.
@@ -49,6 +50,9 @@ func MarkdownToHTML() TransformerFunc {
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
+		),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(), // Allow raw HTML to pass through (sanitized later)
 		),
 	)
 

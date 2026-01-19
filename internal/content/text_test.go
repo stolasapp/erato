@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:maintidx // large table-driven test
 func TestScrubTextDocument(t *testing.T) {
 	t.Parallel()
 	scrub := ScrubTextDocument()
@@ -44,10 +45,15 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "line1\nline2\nline3\nline4",
 		},
 
-		// Paragraph whitespace
+		// Paragraph whitespace (small indents = paragraph breaks)
 		{
 			name:  "two space indent gets blank line",
 			input: "First paragraph.\n  Second paragraph.",
+			want:  "First paragraph.\n\nSecond paragraph.",
+		},
+		{
+			name:  "four space indent gets blank line",
+			input: "First paragraph.\n    Second paragraph.",
 			want:  "First paragraph.\n\nSecond paragraph.",
 		},
 		{
@@ -71,6 +77,18 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "indented line",
 		},
 
+		// Centering whitespace (large indents = no paragraph breaks)
+		{
+			name:  "centering whitespace stripped without paragraph break",
+			input: "          Title\n          By Author",
+			want:  "Title\nBy Author",
+		},
+		{
+			name:  "centered title then indented paragraph",
+			input: "          Title\n          By Author\n\n    First paragraph.",
+			want:  "Title\nBy Author\n\nFirst paragraph.",
+		},
+
 		// Trailing whitespace
 		{
 			name:  "trailing spaces removed",
@@ -87,22 +105,32 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three asterisks normalized",
 			input: "text\n***\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five asterisks normalized",
 			input: "text\n*****\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "spaced asterisks normalized",
 			input: "text\n* * *\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two asterisks not normalized",
 			input: "text\n**\nmore text",
 			want:  "text\n**\nmore text",
+		},
+		{
+			name:  "single asterisk normalized to HR",
+			input: "text\n*\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "single asterisk with whitespace normalized",
+			input: "text\n  *  \nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "asterisks with preceding text not normalized",
@@ -114,29 +142,39 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three dashes normalized",
 			input: "text\n---\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five dashes normalized",
 			input: "text\n-----\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two dashes not normalized",
 			input: "text\n--\nmore text",
 			want:  "text\n--\nmore text",
 		},
+		{
+			name:  "single dash normalized to HR",
+			input: "text\n-\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "single dash with whitespace normalized",
+			input: "text\n  -  \nmore text",
+			want:  "text\n***\nmore text",
+		},
 
 		// Decorative HR - underscores
 		{
 			name:  "three underscores normalized",
 			input: "text\n___\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five underscores normalized",
 			input: "text\n_____\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two underscores not normalized",
@@ -148,12 +186,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three tildes normalized",
 			input: "text\n~~~\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five tildes normalized",
 			input: "text\n~~~~~\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two tildes not normalized",
@@ -165,12 +203,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three backticks normalized",
 			input: "text\n```\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five backticks normalized",
 			input: "text\n`````\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two backticks not normalized",
@@ -182,12 +220,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three equals normalized",
 			input: "text\n===\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five equals normalized",
 			input: "text\n=====\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "two equals not normalized",
@@ -199,12 +237,12 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "three hashes alone normalized",
 			input: "text\n###\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "five hashes alone normalized",
 			input: "text\n#####\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "hash heading not normalized",
@@ -216,22 +254,176 @@ func TestScrubTextDocument(t *testing.T) {
 			input: "text\n##\nmore text",
 			want:  "text\n##\nmore text",
 		},
+
+		// Decorative HR - plus signs
+		{
+			name:  "three plus signs normalized",
+			input: "text\n+++\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "spaced plus signs normalized",
+			input: "text\n+ + +\nmore text",
+			want:  "text\n***\nmore text",
+		},
 		{
 			name:  "hashes with preceding text not normalized",
 			input: "text ###\nmore text",
 			want:  "text ###\nmore text",
 		},
 
+		// Decorative HR - greater-than signs
+		{
+			name:  "three greater-than signs normalized",
+			input: "text\n>>>\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "spaced greater-than signs normalized",
+			input: "text\n> > >\nmore text",
+			want:  "text\n***\nmore text",
+		},
+
 		// HR with leading/trailing whitespace on line (should still match)
 		{
 			name:  "HR with leading whitespace normalized",
 			input: "text\n   ***\nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
 		},
 		{
 			name:  "HR with trailing whitespace normalized",
 			input: "text\n***   \nmore text",
-			want:  "text\n---\nmore text",
+			want:  "text\n***\nmore text",
+		},
+
+		// Sandwich headers - converted to ATX headers
+		{
+			name:  "dash sandwich to h2",
+			input: "------------------------\nPart one\n------------------------",
+			want:  "## Part one",
+		},
+		{
+			name:  "equals sandwich to h1",
+			input: "========================\nTitle\n========================",
+			want:  "# Title",
+		},
+		{
+			name:  "multiple dash sandwiches",
+			input: "---\nHeader 1\n---\ntext\n---\nHeader 2\n---",
+			want:  "## Header 1\ntext\n## Header 2",
+		},
+		{
+			name:  "non-sandwich HR preserved",
+			input: "text\n---\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "katakana prolonged sound mark sandwich to h2",
+			input: "ーーーーーーーーーーーー\nPart one\nーーーーーーーーーーーー",
+			want:  "## Part one",
+		},
+		{
+			name:  "katakana prolonged sound mark HR normalized",
+			input: "text\nーーーーーー\nmore text",
+			want:  "text\n***\nmore text",
+		},
+
+		// Isolated dash prefix removal (dialog markers)
+		{
+			name:  "isolated dash prefix stripped",
+			input: "some text\n- dialog line\nmore text",
+			want:  "some text\ndialog line\nmore text",
+		},
+		{
+			name:  "isolated dash with blank lines stripped",
+			input: "some text\n\n- dialog line\n\nmore text",
+			want:  "some text\n\ndialog line\n\nmore text",
+		},
+		{
+			name:  "consecutive dash lines preserved as list",
+			input: "some text\n- item 1\n- item 2\nmore text",
+			want:  "some text\n- item 1\n- item 2\nmore text",
+		},
+		{
+			name:  "dash lines with blank between preserved as list",
+			input: "some text\n- item 1\n\n- item 2\nmore text",
+			want:  "some text\n- item 1\n\n- item 2\nmore text",
+		},
+		{
+			name:  "multiple isolated dashes stripped",
+			input: "text\n- dialog 1\nnarration\n- dialog 2\nmore text",
+			want:  "text\ndialog 1\nnarration\ndialog 2\nmore text",
+		},
+		{
+			name:  "dash at start of document isolated",
+			input: "- opening line\nsome text",
+			want:  "opening line\nsome text",
+		},
+		{
+			name:  "dash at end of document isolated",
+			input: "some text\n- closing line",
+			want:  "some text\nclosing line",
+		},
+		{
+			name:  "three consecutive dashes preserved",
+			input: "text\n- one\n- two\n- three\nmore",
+			want:  "text\n- one\n- two\n- three\nmore",
+		},
+		{
+			name:  "isolated dash without space stripped",
+			input: "some text\n-\"dialog line\"\nmore text",
+			want:  "some text\n\"dialog line\"\nmore text",
+		},
+		{
+			name:  "consecutive dashes without space preserved",
+			input: "text\n-\"item 1\"\n-\"item 2\"\nmore",
+			want:  "text\n-\"item 1\"\n-\"item 2\"\nmore",
+		},
+		{
+			name:  "mixed dash styles treated as list",
+			input: "text\n- item 1\n-\"item 2\"\nmore",
+			want:  "text\n- item 1\n-\"item 2\"\nmore",
+		},
+		{
+			name:  "double dash not treated as dialog",
+			input: "text\n--separator\nmore",
+			want:  "text\n--separator\nmore",
+		},
+
+		// Email header wrapping
+		{
+			name:  "email headers wrapped in details",
+			input: "From: Author <a@b.com>\nSubject: Test\n\nBody text here.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"From: Author &lt;a@b.com&gt;<br>\nSubject: Test\n</details>\n\nBody text here.",
+		},
+		{
+			name:  "email headers with HR separator",
+			input: "Date: Wed, 14 Jan 2026\nFrom: Author\n---\n\nBody text.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Date: Wed, 14 Jan 2026<br>\nFrom: Author\n</details>\n\nBody text.",
+		},
+		{
+			name:  "no email headers unchanged",
+			input: "Just regular text\nwith multiple lines.",
+			want:  "Just regular text\nwith multiple lines.",
+		},
+		{
+			name:  "single header line",
+			input: "Subject: Hello\n\nBody.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Subject: Hello\n</details>\n\nBody.",
+		},
+		{
+			name:  "headers must be at start",
+			input: "Some intro\nFrom: Author\n\nBody.",
+			want:  "Some intro\nFrom: Author\n\nBody.",
+		},
+		{
+			name:  "email headers with leading blank lines",
+			input: "\n\nDate: Sat, 10 Jan 2026\nFrom: Author\n\nBody.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Date: Sat, 10 Jan 2026<br>\nFrom: Author\n</details>\n\nBody.",
 		},
 	}
 

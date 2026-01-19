@@ -8,8 +8,6 @@ on:
     branches:
       - main
       - v2
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
   pull_request:
     branches:
       - main
@@ -24,7 +22,6 @@ jobs:
     name: Build & Check
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     steps:
       - name: Checkout
@@ -38,22 +35,3 @@ jobs:
 
       - name: Build package
         run: make build-nix
-
-      - name: Publish rolling release to FlakeHub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        # https://github.com/DeterminateSystems/flakehub-push
-        uses: DeterminateSystems/flakehub-push@9f22a225279b7dc785553ff476bad4f0cb4e764b # main
-        with:
-          name: stolasapp/erato
-          rolling: true
-          visibility: unlisted
-          include-output-paths: true
-
-      - name: Publish tagged release to FlakeHub
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        # https://github.com/DeterminateSystems/flakehub-push
-        uses: DeterminateSystems/flakehub-push@9f22a225279b7dc785553ff476bad4f0cb4e764b # main
-        with:
-          name: stolasapp/erato
-          visibility: unlisted
-          include-output-paths: true

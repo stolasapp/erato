@@ -235,6 +235,28 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "text\n---\nmore text",
 		},
 
+		// Sandwich headers - converted to ATX headers
+		{
+			name:  "dash sandwich to h2",
+			input: "------------------------\nPart one\n------------------------",
+			want:  "## Part one",
+		},
+		{
+			name:  "equals sandwich to h1",
+			input: "========================\nTitle\n========================",
+			want:  "# Title",
+		},
+		{
+			name:  "multiple dash sandwiches",
+			input: "---\nHeader 1\n---\ntext\n---\nHeader 2\n---",
+			want:  "## Header 1\ntext\n## Header 2",
+		},
+		{
+			name:  "non-sandwich HR preserved",
+			input: "text\n---\nmore text",
+			want:  "text\n---\nmore text",
+		},
+
 		// Isolated dash prefix removal (dialog markers)
 		{
 			name:  "isolated dash prefix stripped",

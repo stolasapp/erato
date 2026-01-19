@@ -24,6 +24,14 @@ var (
 	// headings. Only matches when the pattern is alone on a line.
 	decorativeHR = regexp.MustCompile(`(?m)^\s*([-=.*_~\x60#] ?){3,}\s*$`)
 
+	// sandwichHeaderDash converts "sandwich" headers using dashes to ATX h2.
+	// Matches 3+ dashes on lines above and below the header text.
+	sandwichHeaderDash = regexp.MustCompile(`(?m)^-{3,}\n([^\n]+)\n-{3,}$`)
+
+	// sandwichHeaderEquals converts "sandwich" headers using equals to ATX h1.
+	// Matches 3+ equals on lines above and below the header text.
+	sandwichHeaderEquals = regexp.MustCompile(`(?m)^={3,}\n([^\n]+)\n={3,}$`)
+
 	// Trailing whitespace on lines can cause issues and is never intentional.
 	trailingWhitespace = regexp.MustCompile(`(?m)[ \t]+$`)
 
@@ -42,6 +50,8 @@ func ScrubTextDocument() TransformerFunc {
 
 		input = addParagraphWhitespace.ReplaceAll(input, []byte("\n\n"))
 		input = removeIndenting.ReplaceAll(input, nil)
+		input = sandwichHeaderEquals.ReplaceAll(input, []byte("# $1"))
+		input = sandwichHeaderDash.ReplaceAll(input, []byte("## $1"))
 		input = decorativeHR.ReplaceAll(input, []byte("---"))
 		input = trailingWhitespace.ReplaceAll(input, nil)
 		input = stripIsolatedDashPrefixes(input)

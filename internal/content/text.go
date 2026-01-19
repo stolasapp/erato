@@ -24,6 +24,10 @@ var (
 
 	// Trailing whitespace on lines can cause issues and is never intentional.
 	trailingWhitespace = regexp.MustCompile(`(?m)[ \t]+$`)
+
+	// emailHeaderBlock matches a block of email headers at the start of a document.
+	// Captures: (1) header lines, (2) optional --- separator.
+	emailHeaderBlock = regexp.MustCompile(`^((?:[A-Za-z][A-Za-z0-9-]*:[^\n]*\n)+)(---\n)?`)
 )
 
 // ScrubTextDocument cleans up UTF-8 text into something as compatible as
@@ -39,8 +43,32 @@ func ScrubTextDocument() TransformerFunc {
 		input = decorativeHR.ReplaceAll(input, []byte("---"))
 		input = trailingWhitespace.ReplaceAll(input, nil)
 		input = stripIsolatedDashPrefixes(input)
+		input = wrapEmailHeaders(input)
 		return input, nil
 	}
+}
+
+// wrapEmailHeaders detects email headers at the start of a document and wraps
+// them in a collapsed <details> element to de-emphasize them.
+func wrapEmailHeaders(input []byte) []byte {
+	match := emailHeaderBlock.FindSubmatch(input)
+	if match == nil {
+		return input
+	}
+
+	headers := match[1] // The header lines (without ---)
+	fullMatch := match[0]
+
+	var out bytes.Buffer
+	out.WriteString("<details><summary>Email headers</summary><small>\n")
+	out.Write(headers)
+	out.WriteString("</small></details>\n\n")
+
+	// Append the rest of the document, trimming leading newlines
+	rest := bytes.TrimLeft(input[len(fullMatch):], "\n")
+	out.Write(rest)
+
+	return out.Bytes()
 }
 
 // stripIsolatedDashPrefixes removes leading dash prefixes from lines that appear

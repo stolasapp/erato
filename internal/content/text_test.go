@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:maintidx // large table-driven test
 func TestScrubTextDocument(t *testing.T) {
 	t.Parallel()
 	scrub := ScrubTextDocument()
@@ -294,6 +295,39 @@ func TestScrubTextDocument(t *testing.T) {
 			name:  "double dash not treated as dialog",
 			input: "text\n--separator\nmore",
 			want:  "text\n--separator\nmore",
+		},
+
+		// Email header wrapping
+		{
+			name:  "email headers wrapped in details",
+			input: "From: Author <a@b.com>\nSubject: Test\n\nBody text here.",
+			want: "<details><summary>Email headers</summary><small>\n" +
+				"From: Author <a@b.com>\nSubject: Test\n" +
+				"</small></details>\n\nBody text here.",
+		},
+		{
+			name:  "email headers with HR separator",
+			input: "Date: Wed, 14 Jan 2026\nFrom: Author\n---\n\nBody text.",
+			want: "<details><summary>Email headers</summary><small>\n" +
+				"Date: Wed, 14 Jan 2026\nFrom: Author\n" +
+				"</small></details>\n\nBody text.",
+		},
+		{
+			name:  "no email headers unchanged",
+			input: "Just regular text\nwith multiple lines.",
+			want:  "Just regular text\nwith multiple lines.",
+		},
+		{
+			name:  "single header line",
+			input: "Subject: Hello\n\nBody.",
+			want: "<details><summary>Email headers</summary><small>\n" +
+				"Subject: Hello\n" +
+				"</small></details>\n\nBody.",
+		},
+		{
+			name:  "headers must be at start",
+			input: "Some intro\nFrom: Author\n\nBody.",
+			want:  "Some intro\nFrom: Author\n\nBody.",
 		},
 	}
 

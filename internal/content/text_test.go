@@ -45,10 +45,15 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "line1\nline2\nline3\nline4",
 		},
 
-		// Paragraph whitespace
+		// Paragraph whitespace (small indents = paragraph breaks)
 		{
 			name:  "two space indent gets blank line",
 			input: "First paragraph.\n  Second paragraph.",
+			want:  "First paragraph.\n\nSecond paragraph.",
+		},
+		{
+			name:  "four space indent gets blank line",
+			input: "First paragraph.\n    Second paragraph.",
 			want:  "First paragraph.\n\nSecond paragraph.",
 		},
 		{
@@ -70,6 +75,18 @@ func TestScrubTextDocument(t *testing.T) {
 			name:  "leading tab removed",
 			input: "\tindented line",
 			want:  "indented line",
+		},
+
+		// Centering whitespace (large indents = no paragraph breaks)
+		{
+			name:  "centering whitespace stripped without paragraph break",
+			input: "          Title\n          By Author",
+			want:  "Title\nBy Author",
+		},
+		{
+			name:  "centered title then indented paragraph",
+			input: "          Title\n          By Author\n\n    First paragraph.",
+			want:  "Title\nBy Author\n\nFirst paragraph.",
 		},
 
 		// Trailing whitespace

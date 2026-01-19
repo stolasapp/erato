@@ -10,9 +10,15 @@ import (
 var (
 	// Authors sometimes only indicate the start of new paragraphs by
 	// indentation and not a blank line between them. This confuses CommonMark
-	// into thinking they are the same paragraph. Matches newline followed by
-	// either 2+ spaces or a tab (plus any additional whitespace).
-	addParagraphWhitespace = regexp.MustCompile(`\n(\s{2}|\t)\s*`)
+	// into thinking they are the same paragraph. Matches one or more newlines
+	// followed by a small indent (2-4 spaces or a tab) - normalizes to single
+	// blank line without the indent.
+	addParagraphWhitespace = regexp.MustCompile(`\n+( {2,4}|\t)\s*`)
+
+	// Authors sometimes try to center text by adding lots of leading whitespace.
+	// This should be stripped without adding paragraph breaks (unlike small indents).
+	// Matches 5+ leading spaces at the start of a line.
+	stripCenteringWhitespace = regexp.MustCompile(`(?m)^ {5,}`)
 
 	// Authors sometimes indent the first line of paragraphs. This confuses
 	// CommonMark into thinking these are preformatted text.
@@ -49,6 +55,7 @@ func ScrubTextDocument() TransformerFunc {
 		input = bytes.ReplaceAll(input, []byte("\r"), []byte("\n"))
 
 		input = wrapEmailHeaders(input)
+		input = stripCenteringWhitespace.ReplaceAll(input, nil)
 		input = addParagraphWhitespace.ReplaceAll(input, []byte("\n\n"))
 		input = removeIndenting.ReplaceAll(input, nil)
 		input = sandwichHeaderEquals.ReplaceAll(input, []byte("# $1"))

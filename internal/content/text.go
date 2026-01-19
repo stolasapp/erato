@@ -2,6 +2,7 @@ package content
 
 import (
 	"bytes"
+	"html"
 	"regexp"
 )
 
@@ -59,10 +60,13 @@ func wrapEmailHeaders(input []byte) []byte {
 	headers := match[1] // The header lines (without ---)
 	fullMatch := match[0]
 
+	// HTML-escape the headers to handle <email@address.com> patterns
+	escapedHeaders := html.EscapeString(string(headers))
+
 	var out bytes.Buffer
-	out.WriteString("<details><summary>Email headers</summary><small>\n")
-	out.Write(headers)
-	out.WriteString("</small></details>\n\n")
+	out.WriteString("<details>\n<summary>Email headers</summary>\n<small>\n")
+	out.WriteString(escapedHeaders)
+	out.WriteString("</small>\n</details>\n\n")
 
 	// Append the rest of the document, trimming leading newlines
 	rest := bytes.TrimLeft(input[len(fullMatch):], "\n")

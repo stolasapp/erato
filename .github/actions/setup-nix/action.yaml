@@ -14,3 +14,5 @@ runs:
     - name: Setup Nix cache
       # https://github.com/DeterminateSystems/magic-nix-cache-action
       uses: DeterminateSystems/magic-nix-cache-action@565684385bcd71bad329742eefe8d12f2e765b39 # v13
+      with:
+        use-flakehub: false

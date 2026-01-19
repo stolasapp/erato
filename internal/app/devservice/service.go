@@ -21,8 +21,8 @@ import (
 const (
 	minCategories        = 8
 	maxExtraCategories   = 5 // 8-12 categories total
-	minEntries           = 120
-	maxExtraEntries      = 40 // 120-160 entries total (ensures pagination with 100/page)
+	minEntries           = 350
+	maxExtraEntries      = 50 // 350-400 entries total (ensures pagination even when filtered)
 	minChapters          = 1
 	maxExtraChapters     = 20 // 1-20 chapters total
 	anthologyProbability = 0.3

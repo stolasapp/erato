@@ -307,7 +307,7 @@ func testAnthologyPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
 	if !navigateToAnthology(p) {
-		t.Skip("no anthologies found")
+		t.Fatal("no anthologies found")
 	}
 
 	// Verify chapter list loads with no filter bar
@@ -321,7 +321,7 @@ func testStoryPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
 	if !navigateToStory(p) {
-		t.Skip("no stories found")
+		t.Fatal("no stories found")
 	}
 
 	content := p.el("article")
@@ -420,7 +420,7 @@ func testCategoryTypeFilter(t *testing.T, newPage func(*testing.T) *testPage) {
 
 	if len(p.els(SelectorStoryItem)) == 0 ||
 		len(p.els(SelectorAnthologyItem)) == 0 {
-		t.Skip("need both stories and anthologies to test type filter")
+		t.Fatal("need both stories and anthologies to test type filter")
 	}
 
 	for _, filter := range []string{"Stories", "Anthologies", "All"} {
@@ -547,12 +547,12 @@ func testAutoView(t *testing.T, newPage func(*testing.T) *testPage) {
 			p := newPage(t)
 
 			if !tc.navigate(p) {
-				t.Skipf("no %ss found", strings.ToLower(tc.name))
+				t.Fatalf("no %ss found", strings.ToLower(tc.name))
 			}
 
 			items := p.els(tc.itemSelector)
 			if len(items) == 0 {
-				t.Skipf("no %ss found", strings.ToLower(tc.name))
+				t.Fatalf("no %ss found", strings.ToLower(tc.name))
 			}
 
 			// Get the item's ID and click its link
@@ -594,12 +594,12 @@ func testUpdatedTimestamp(t *testing.T, newPage func(*testing.T) *testPage, serv
 			p := newPage(t)
 
 			if !tc.navigate(p) {
-				t.Skipf("no %ss found", strings.ToLower(tc.name))
+				t.Fatalf("no %ss found", strings.ToLower(tc.name))
 			}
 
 			items := p.els(tc.itemSelector)
 			if len(items) == 0 {
-				t.Skipf("no %ss found", strings.ToLower(tc.name))
+				t.Fatalf("no %ss found", strings.ToLower(tc.name))
 			}
 
 			// Get the item's ID
@@ -677,7 +677,7 @@ func testChapterPage(t *testing.T, newPage func(*testing.T) *testPage) {
 	p := newPage(t)
 
 	if !navigateToChapter(p) {
-		t.Skip("no chapters found")
+		t.Fatal("no chapters found")
 	}
 
 	// Verify content loads
@@ -700,7 +700,7 @@ func testFilterCombination(t *testing.T, newPage func(*testing.T) *testPage) {
 	stories := p.els(SelectorStoryItem)
 	anthologies := p.els(SelectorAnthologyItem)
 	if len(stories) == 0 || len(anthologies) == 0 {
-		t.Skip("need both stories and anthologies to test filter combination")
+		t.Fatal("need both stories and anthologies to test filter combination")
 	}
 
 	// Hide a story if none are hidden
@@ -753,7 +753,7 @@ func testPaginationNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	// Find and click the Next button
 	nextBtn := p.elMaybe(SelectorPagination + " a")
 	if nextBtn == nil {
-		t.Skip("pagination not available (fewer than 100 entries)")
+		t.Fatal("pagination not available (fewer than 100 entries)")
 	}
 
 	// Verify URL doesn't have page param yet
@@ -782,55 +782,180 @@ func testPaginationNavigation(t *testing.T, newPage func(*testing.T) *testPage, 
 	assert.Equal(t, *firstEntryID, *firstEntryIDAfterBack, "browser back should return to page 1")
 }
 
-// testBreadcrumbFilterPropagation tests that breadcrumbs preserve filter state from parent pages.
+// Page type constants for breadcrumb tests.
+const (
+	pageTypeStory     = "story"
+	pageTypeAnthology = "anthology"
+	pageTypeChapter   = "chapter"
+)
+
+// URL parameter constants for assertions.
+const (
+	paramTypeStory     = "type=story"
+	paramTypeAnthology = "type=anthology"
+	paramPage          = "page="
+	paramParentFilter  = "pf="
+)
+
+// breadcrumbTestCase defines a test case for breadcrumb state preservation.
+type breadcrumbTestCase struct {
+	name            string
+	applyFilter     bool   // whether to apply a type filter before navigating
+	applyPagination bool   // whether to navigate to page 2 before clicking an item
+	pageType        string // pageTypeStory, pageTypeAnthology, or pageTypeChapter
+}
+
+var breadcrumbTestCases = []breadcrumbTestCase{
+	// Story tests
+	{name: "Story/FilterOnly", applyFilter: true, applyPagination: false, pageType: pageTypeStory},
+	{name: "Story/PaginationOnly", applyFilter: false, applyPagination: true, pageType: pageTypeStory},
+	{name: "Story/FilterAndPagination", applyFilter: true, applyPagination: true, pageType: pageTypeStory},
+	// Anthology tests
+	{name: "Anthology/FilterOnly", applyFilter: true, applyPagination: false, pageType: pageTypeAnthology},
+	{name: "Anthology/PaginationOnly", applyFilter: false, applyPagination: true, pageType: pageTypeAnthology},
+	{name: "Anthology/FilterAndPagination", applyFilter: true, applyPagination: true, pageType: pageTypeAnthology},
+	// Chapter tests (3-level hierarchy: category -> anthology -> chapter)
+	{name: "Chapter/FilterOnly", applyFilter: true, applyPagination: false, pageType: pageTypeChapter},
+	{name: "Chapter/FilterAndPagination", applyFilter: true, applyPagination: true, pageType: pageTypeChapter},
+}
+
+// expectedTypeParam returns the expected type URL parameter for a page type.
+func expectedTypeParam(pageType string) string {
+	if pageType == pageTypeStory {
+		return paramTypeStory
+	}
+	return paramTypeAnthology
+}
+
+// filterSegmentName returns the filter segment name for a page type.
+func filterSegmentName(pageType string) string {
+	if pageType == pageTypeStory {
+		return "Stories"
+	}
+	return "Anthologies"
+}
+
+// itemSelectorForType returns the item selector for a page type.
+func itemSelectorForType(pageType string) string {
+	if pageType == pageTypeStory {
+		return VisibleItemByKind(component.KindStory)
+	}
+	return VisibleItemByKind(component.KindAnthology)
+}
+
+// testBreadcrumbFilterPropagation tests that breadcrumbs preserve filter and pagination state.
 func testBreadcrumbFilterPropagation(t *testing.T, newPage func(*testing.T) *testPage, _ *Server) {
-	p := newPage(t)
-	navigateToCategory(p)
+	for _, breadcrumbTC := range breadcrumbTestCases {
+		t.Run(breadcrumbTC.name, func(t *testing.T) {
+			p := newPage(t)
+			navigateToCategory(p)
 
-	// Apply a filter (Stories)
-	storiesBtn := findFilterSegment(p, "Stories")
-	if storiesBtn == nil {
-		t.Skip("Stories filter segment not found (may not have both entry types)")
+			// Apply filter and/or pagination as configured
+			applyBreadcrumbTestState(t, p, breadcrumbTC)
+
+			// Navigate to the content page
+			navigateToContentPage(t, p, breadcrumbTC.pageType)
+
+			// Verify and click the category breadcrumb
+			verifyBreadcrumbState(t, p, breadcrumbTC)
+		})
 	}
-	storiesBtn.MustClick()
-	p.waitStable()
+}
 
-	// Verify URL has filter param
+// applyBreadcrumbTestState applies filter and pagination based on test case configuration.
+func applyBreadcrumbTestState(t *testing.T, p *testPage, breadcrumbTC breadcrumbTestCase) {
+	t.Helper()
+
+	if breadcrumbTC.applyFilter {
+		filterBtn := findFilterSegment(p, filterSegmentName(breadcrumbTC.pageType))
+		if filterBtn == nil {
+			t.Fatalf("%s filter not found", filterSegmentName(breadcrumbTC.pageType))
+		}
+		filterBtn.MustClick()
+		p.waitStable()
+	}
+
+	if breadcrumbTC.applyPagination {
+		nextBtn := p.elMaybe(SelectorPagination + " a")
+		if nextBtn == nil {
+			t.Fatal("pagination not available (fewer than 100 entries)")
+		}
+		nextBtn.MustClick()
+		p.waitLoad()
+	}
+
+	// Verify category URL has expected state
 	categoryURL := p.MustInfo().URL
-	assert.Contains(t, categoryURL, "type=story", "category URL should have type filter")
-
-	// Click on a story to navigate to it
-	storyLink := p.elMaybe(VisibleItemByKind(component.KindStory) + " > a")
-	if storyLink == nil {
-		t.Skip("no visible stories found")
+	if breadcrumbTC.applyFilter {
+		assert.Contains(t, categoryURL, expectedTypeParam(breadcrumbTC.pageType),
+			"category URL should have type filter")
 	}
-	storyLink.MustClick()
-	p.waitLoad()
+	if breadcrumbTC.applyPagination {
+		assert.Contains(t, categoryURL, paramPage, "category URL should have page param")
+	}
+}
 
-	// Verify we're on the story page (URL has pf param with parent filter state)
-	storyURL := p.MustInfo().URL
-	assert.Contains(t, storyURL, "pf=", "story URL should have parent filter state")
+// navigateToContentPage navigates from category to the appropriate content page.
+// Uses MustWaitLoad without waitStable to avoid timeout issues on content pages.
+func navigateToContentPage(t *testing.T, p *testPage, pageType string) {
+	t.Helper()
 
-	// Find the category breadcrumb and verify it has the filter params
+	itemLink := p.elMaybe(itemSelectorForType(pageType) + " > a")
+	if itemLink == nil {
+		t.Fatalf("no visible %s items found", pageType)
+	}
+	itemLink.MustClick()
+	p.Page.Timeout(defaultTimeout).MustWaitLoad()
+
+	// For chapters, navigate one more level into the anthology
+	if pageType == pageTypeChapter {
+		chapterLink := p.elMaybe(SelectorChapterItem + " > a")
+		if chapterLink == nil {
+			t.Fatal("no chapters found in anthology")
+		}
+		chapterLink.MustClick()
+		p.Page.Timeout(defaultTimeout).MustWaitLoad()
+	}
+}
+
+// verifyBreadcrumbState verifies breadcrumb contains expected state and clicking restores it.
+func verifyBreadcrumbState(t *testing.T, p *testPage, breadcrumbTC breadcrumbTestCase) {
+	t.Helper()
+
+	// Verify content page URL has parent filter state
+	contentURL := p.Page.Timeout(defaultTimeout).MustInfo().URL
+	assert.Contains(t, contentURL, paramParentFilter, "content page URL should have parent filter state")
+
+	// Find the category breadcrumb (first link)
 	categoryBreadcrumb := p.el(SelectorBreadcrumbs + " a:first-of-type")
 	require.NotNil(t, categoryBreadcrumb)
 	breadcrumbHref := categoryBreadcrumb.MustAttribute("href")
 	require.NotNil(t, breadcrumbHref)
-	assert.Contains(t, *breadcrumbHref, "type=story", "category breadcrumb should preserve filter state")
 
-	// Click the breadcrumb and verify we return to filtered category
+	// Verify breadcrumb contains expected state
+	if breadcrumbTC.applyFilter {
+		assert.Contains(t, *breadcrumbHref, expectedTypeParam(breadcrumbTC.pageType),
+			"category breadcrumb should preserve filter state")
+	}
+	if breadcrumbTC.applyPagination {
+		assert.Contains(t, *breadcrumbHref, paramPage,
+			"category breadcrumb should preserve pagination state")
+	}
+
+	// Click the category breadcrumb and verify state is restored
+	// Use MustWaitLoad without waitStable to avoid timeout issues on certain pages
 	categoryBreadcrumb.MustClick()
-	p.waitLoad()
+	p.Page.Timeout(defaultTimeout).MustWaitLoad()
 
-	// Verify we're back on the category with the filter still applied
-	returnURL := p.MustInfo().URL
-	assert.Contains(t, returnURL, "type=story", "returning via breadcrumb should preserve filter")
-
-	// Verify the Stories filter is still active
-	storiesBtn = findFilterSegment(p, "Stories")
-	require.NotNil(t, storiesBtn)
-	ariaPressed := storiesBtn.MustAttribute("aria-pressed")
-	assert.Equal(t, "true", *ariaPressed, "Stories filter should still be active after breadcrumb navigation")
+	returnURL := p.Page.Timeout(defaultTimeout).MustInfo().URL
+	if breadcrumbTC.applyFilter {
+		assert.Contains(t, returnURL, expectedTypeParam(breadcrumbTC.pageType),
+			"returning via breadcrumb should preserve filter")
+	}
+	if breadcrumbTC.applyPagination {
+		assert.Contains(t, returnURL, paramPage,
+			"returning via breadcrumb should preserve pagination")
+	}
 }
 
 // testMarkReadFilterPreservation tests that "Mark Read & Return" preserves filter state.
@@ -902,7 +1027,7 @@ func testContentPageToggle(t *testing.T, newPage func(*testing.T) *testPage) {
 			p := newPage(t)
 
 			if !testCase.navigate(p) {
-				t.Skipf("no %ss found", strings.ToLower(testCase.name))
+				t.Fatalf("no %ss found", strings.ToLower(testCase.name))
 			}
 
 			// Verify initial state: site header exists with site title

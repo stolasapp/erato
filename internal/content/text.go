@@ -70,7 +70,9 @@ func ScrubTextDocument() TransformerFunc {
 // wrapEmailHeaders detects email headers at the start of a document and wraps
 // them in a collapsed <details> element to de-emphasize them.
 func wrapEmailHeaders(input []byte) []byte {
-	match := emailHeaderBlock.FindSubmatch(input)
+	// Trim leading whitespace to handle documents that start with blank lines
+	trimmed := bytes.TrimLeft(input, " \t\n\r")
+	match := emailHeaderBlock.FindSubmatch(trimmed)
 	if match == nil {
 		return input
 	}
@@ -89,7 +91,8 @@ func wrapEmailHeaders(input []byte) []byte {
 	out.WriteString("\n</details>\n\n")
 
 	// Append the rest of the document, trimming leading newlines
-	rest := bytes.TrimLeft(input[len(fullMatch):], "\n")
+	// Note: fullMatch is relative to trimmed, not input
+	rest := bytes.TrimLeft(trimmed[len(fullMatch):], "\n")
 	out.Write(rest)
 
 	return out.Bytes()

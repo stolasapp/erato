@@ -115,6 +115,7 @@ func sanitizer() *bluemonday.Policy {
 		"br",
 		"cite",
 		"code",
+		"details",
 		"dfn",
 		"div",
 		"em",

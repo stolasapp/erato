@@ -377,6 +377,12 @@ func TestScrubTextDocument(t *testing.T) {
 			input: "Some intro\nFrom: Author\n\nBody.",
 			want:  "Some intro\nFrom: Author\n\nBody.",
 		},
+		{
+			name:  "email headers with leading blank lines",
+			input: "\n\nDate: Sat, 10 Jan 2026\nFrom: Author\n\nBody.",
+			want: "<details class=\"email-headers\">\n<summary>Email headers</summary>\n" +
+				"Date: Sat, 10 Jan 2026<br>\nFrom: Author\n</details>\n\nBody.",
+		},
 	}
 
 	for _, tt := range tests {

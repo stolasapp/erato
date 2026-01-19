@@ -25,14 +25,19 @@ var (
 	removeIndenting = regexp.MustCompile(`(?m)^[ \t]+`)
 
 	// Authors sometimes use repeated characters as decorative horizontal rules.
-	// This catches common patterns (*, -, _, ~, `, =, #, ., +) on their own line
-	// that might confuse CommonMark into thinking they're code fences or
-	// headings. Only matches when the pattern is alone on a line.
-	decorativeHR = regexp.MustCompile(`(?m)^\s*([-=.*_~\x60#+] ?){3,}\s*$`)
+	// This catches common patterns (*, -, _, ~, `, =, #, ., +, >, ー) on their
+	// own line that might confuse CommonMark into thinking they're code fences,
+	// headings, or blockquotes. Only matches when the pattern is alone on a line.
+	decorativeHR = regexp.MustCompile(`(?m)^\s*([-=.*_~\x60#+>ー] ?){3,}\s*$`)
+
+	// Authors sometimes use a single * or - alone on a line as a section break.
+	// CommonMark would interpret these as list items, so convert to proper HRs.
+	singleCharSeparator = regexp.MustCompile(`(?m)^\s*[*-]\s*$`)
 
 	// sandwichHeaderDash converts "sandwich" headers using dashes to ATX h2.
-	// Matches 3+ dashes on lines above and below the header text.
-	sandwichHeaderDash = regexp.MustCompile(`(?m)^-{3,}\n([^\n]+)\n-{3,}$`)
+	// Matches 3+ dashes (ASCII or Japanese long vowel mark ー) on lines above
+	// and below the header text.
+	sandwichHeaderDash = regexp.MustCompile(`(?m)^[-ー]{3,}\n([^\n]+)\n[-ー]{3,}$`)
 
 	// sandwichHeaderEquals converts "sandwich" headers using equals to ATX h1.
 	// Matches 3+ equals on lines above and below the header text.
@@ -48,12 +53,21 @@ var (
 
 // ScrubTextDocument cleans up UTF-8 text into something as compatible as
 // possible with CommonMark.
+//
+// Transformation order is significant:
+//  1. Line endings normalized first (CRLF/CR → LF)
+//  2. Email headers wrapped before any whitespace changes
+//  3. Centering whitespace (5+ spaces) stripped before paragraph detection
+//  4. Small indents (2-4 spaces) converted to paragraph breaks
+//  5. All remaining indentation removed
+//  6. Sandwich headers converted before decorative HR normalization
+//  7. Decorative HRs and single-char separators normalized to ***
+//  8. Trailing whitespace cleaned up
+//  9. Isolated dialog dashes stripped last (after HR normalization)
 func ScrubTextDocument() TransformerFunc {
 	return func(input []byte) ([]byte, error) {
-		// Normalize to Unix line endings first
 		input = bytes.ReplaceAll(input, []byte("\r\n"), []byte("\n"))
 		input = bytes.ReplaceAll(input, []byte("\r"), []byte("\n"))
-
 		input = wrapEmailHeaders(input)
 		input = stripCenteringWhitespace.ReplaceAll(input, nil)
 		input = addParagraphWhitespace.ReplaceAll(input, []byte("\n\n"))
@@ -61,6 +75,7 @@ func ScrubTextDocument() TransformerFunc {
 		input = sandwichHeaderEquals.ReplaceAll(input, []byte("# $1"))
 		input = sandwichHeaderDash.ReplaceAll(input, []byte("## $1"))
 		input = decorativeHR.ReplaceAll(input, []byte("***"))
+		input = singleCharSeparator.ReplaceAll(input, []byte("***"))
 		input = trailingWhitespace.ReplaceAll(input, nil)
 		input = stripIsolatedDashPrefixes(input)
 		return input, nil

@@ -123,6 +123,16 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "text\n**\nmore text",
 		},
 		{
+			name:  "single asterisk normalized to HR",
+			input: "text\n*\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "single asterisk with whitespace normalized",
+			input: "text\n  *  \nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
 			name:  "asterisks with preceding text not normalized",
 			input: "text ***\nmore text",
 			want:  "text ***\nmore text",
@@ -143,6 +153,16 @@ func TestScrubTextDocument(t *testing.T) {
 			name:  "two dashes not normalized",
 			input: "text\n--\nmore text",
 			want:  "text\n--\nmore text",
+		},
+		{
+			name:  "single dash normalized to HR",
+			input: "text\n-\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "single dash with whitespace normalized",
+			input: "text\n  -  \nmore text",
+			want:  "text\n***\nmore text",
 		},
 
 		// Decorative HR - underscores
@@ -252,6 +272,18 @@ func TestScrubTextDocument(t *testing.T) {
 			want:  "text ###\nmore text",
 		},
 
+		// Decorative HR - greater-than signs
+		{
+			name:  "three greater-than signs normalized",
+			input: "text\n>>>\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "spaced greater-than signs normalized",
+			input: "text\n> > >\nmore text",
+			want:  "text\n***\nmore text",
+		},
+
 		// HR with leading/trailing whitespace on line (should still match)
 		{
 			name:  "HR with leading whitespace normalized",
@@ -283,6 +315,16 @@ func TestScrubTextDocument(t *testing.T) {
 		{
 			name:  "non-sandwich HR preserved",
 			input: "text\n---\nmore text",
+			want:  "text\n***\nmore text",
+		},
+		{
+			name:  "katakana prolonged sound mark sandwich to h2",
+			input: "ーーーーーーーーーーーー\nPart one\nーーーーーーーーーーーー",
+			want:  "## Part one",
+		},
+		{
+			name:  "katakana prolonged sound mark HR normalized",
+			input: "text\nーーーーーー\nmore text",
 			want:  "text\n***\nmore text",
 		},
 

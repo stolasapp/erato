@@ -165,7 +165,9 @@ update-buf:
 
 .PHONY: update-htmx
 update-htmx:
-	curl -sfL "https://unpkg.com/htmx.org@$$(curl -sf https://api.github.com/repos/bigskysoftware/htmx/releases/latest | jq -r '.tag_name')/dist/htmx.min.js" -o internal/app/static/htmx.min.js
+	$(eval HTMX_VERSION := $(shell curl -sf https://api.github.com/repos/bigskysoftware/htmx/releases/latest | jq -r '.tag_name'))
+	@if [ -z "$(HTMX_VERSION)" ]; then echo "error: failed to fetch htmx version from GitHub API" >&2; exit 1; fi
+	curl -sfL "https://unpkg.com/htmx.org@$(HTMX_VERSION)/dist/htmx.min.js" -o internal/app/static/htmx.min.js
 
 .PHONY: update-nix
 update-nix:

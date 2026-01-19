@@ -25,4 +25,4 @@ Run `make help` to see all available targets.
 
 ## License
 
-Private.
+Apache 2.0 - see [LICENSE](LICENSE) for details.

@@ -19,7 +19,7 @@ buildGoModule {
   };
 
   # Run `nix build` once to get the correct hash, then update this value
-  vendorHash = "sha256-4noFVpYtBrqpC3KV/KyGk/dTVmtoSYZ5+qkn/9VKKzo=";
+  vendorHash = "sha256-8Y8G4dRgVhRALUx1ZHYYeNgv10gpoCCeCNSuHHk0Xeo=";
 
   subPackages = [ "cmd/erato" ];
 
